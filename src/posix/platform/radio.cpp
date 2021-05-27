@@ -35,7 +35,9 @@
 
 #include <string.h>
 
+#include "common/new.hpp"
 #include "lib/spinel/radio_spinel.hpp"
+#include "posix/platform/radio.hpp"
 
 #if OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_UART
 #include "hdlc_interface.hpp"
@@ -45,67 +47,78 @@ static ot::Spinel::RadioSpinel<ot::Posix::HdlcInterface, VirtualTimeEvent> sRadi
 #else
 static ot::Spinel::RadioSpinel<ot::Posix::HdlcInterface, RadioProcessContext> sRadioSpinel;
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME
+
+#elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_CPC
+#include "cpc_interface.hpp"
+
+static ot::Spinel::RadioSpinel<ot::Posix::CpcInterface, RadioProcessContext> sRadioSpinel;
+
 #elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_SPI
 #include "spi_interface.hpp"
 
 static ot::Spinel::RadioSpinel<ot::Posix::SpiInterface, RadioProcessContext> sRadioSpinel;
 #else
-#error "OPENTHREAD_POSIX_CONFIG_RCP_BUS only allows OT_POSIX_RCP_BUS_UART and OT_POSIX_RCP_BUS_SPI!"
+#error "OPENTHREAD_POSIX_CONFIG_RCP_BUS only allows OT_POSIX_RCP_BUS_UART, OT_POSIX_RCP_BUS_SPI and OT_POSIX_RCP_CPC!"
 #endif
 
-void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
+namespace ot {
+namespace Posix {
+
+namespace {
+alignas(alignof(ot::Posix::Radio)) char sRadioRaw[sizeof(ot::Posix::Radio)];
+
+extern "C" void platformRadioInit(const char *aUrl)
 {
-    OT_UNUSED_VARIABLE(aInstance);
-    SuccessOrDie(sRadioSpinel.GetIeeeEui64(aIeeeEui64));
+    Radio &radio = *(new (&sRadioRaw) Radio(aUrl));
+
+    radio.Init();
+}
+} // namespace
+
+Radio::Radio(const char *aUrl)
+    : mRadioUrl(aUrl)
+{
+    VerifyOrDie(mRadioUrl.GetPath() != nullptr, OT_EXIT_INVALID_ARGUMENTS);
 }
 
-void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
+void Radio::Init(void)
 {
-    OT_UNUSED_VARIABLE(aInstance);
-    SuccessOrDie(sRadioSpinel.SetPanId(panid));
-}
-
-void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aAddress)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-    otExtAddress addr;
-
-    for (size_t i = 0; i < sizeof(addr); i++)
-    {
-        addr.m8[i] = aAddress->m8[sizeof(addr) - 1 - i];
-    }
-
-    SuccessOrDie(sRadioSpinel.SetExtendedAddress(addr));
-}
-
-void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t aAddress)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-    SuccessOrDie(sRadioSpinel.SetShortAddress(aAddress));
-}
-
-void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-    SuccessOrDie(sRadioSpinel.SetPromiscuous(aEnable));
-}
-
-void platformRadioInit(otUrl *aRadioUrl)
-{
-    ot::Url::Url &radioUrl               = *static_cast<ot::Url::Url *>(aRadioUrl);
-    bool          resetRadio             = (radioUrl.GetValue("no-reset") == nullptr);
-    bool          restoreDataset         = (radioUrl.GetValue("ncp-dataset") != nullptr);
-    bool          skipCompatibilityCheck = (radioUrl.GetValue("skip-rcp-compatibility-check") != nullptr);
+    bool          resetRadio             = (mRadioUrl.GetValue("no-reset") == nullptr);
+    bool          restoreDataset         = (mRadioUrl.GetValue("ncp-dataset") != nullptr);
+    bool          skipCompatibilityCheck = (mRadioUrl.GetValue("skip-rcp-compatibility-check") != nullptr);
+    spinel_iid_t  iid                    = 0;
+    const char *  iidString              = (mRadioUrl.GetValue("iid"));
     const char *  parameterValue;
     const char *  region;
 #if OPENTHREAD_POSIX_CONFIG_MAX_POWER_TABLE_ENABLE
     const char *maxPowerTable;
 #endif
 
-    SuccessOrDie(sRadioSpinel.GetSpinelInterface().Init(radioUrl));
-    sRadioSpinel.Init(resetRadio, restoreDataset, skipCompatibilityCheck);
+#if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
+    VerifyOrDie(iidString != nullptr, OT_EXIT_INVALID_ARGUMENTS);
+    iid = static_cast<spinel_iid_t>(atoi(iidString));
+    VerifyOrDie(iid != 0 && iid <= SPINEL_HEADER_IID_MAX, OT_EXIT_INVALID_ARGUMENTS);
+#else
+    VerifyOrDie(iidString == nullptr, OT_EXIT_INVALID_ARGUMENTS);
+#endif
 
-    parameterValue = radioUrl.GetValue("fem-lnagain");
+#if OPENTHREAD_POSIX_VIRTUAL_TIME
+    // The last argument must be the node id
+    {
+        const char *nodeId = nullptr;
+
+        for (const char *arg = nullptr; (arg = mRadioUrl.GetValue("forkpty-arg", arg)) != nullptr; nodeId = arg)
+        {
+        }
+
+        virtualTimeInit(static_cast<uint16_t>(atoi(nodeId)));
+    }
+#endif
+
+    SuccessOrDie(sRadioSpinel.GetSpinelInterface().Init(mRadioUrl));
+    sRadioSpinel.Init(resetRadio, restoreDataset, skipCompatibilityCheck, iid);
+
+    parameterValue = mRadioUrl.GetValue("fem-lnagain");
     if (parameterValue != nullptr)
     {
         long femLnaGain = strtol(parameterValue, nullptr, 0);
@@ -114,7 +127,7 @@ void platformRadioInit(otUrl *aRadioUrl)
         SuccessOrDie(sRadioSpinel.SetFemLnaGain(static_cast<int8_t>(femLnaGain)));
     }
 
-    parameterValue = radioUrl.GetValue("cca-threshold");
+    parameterValue = mRadioUrl.GetValue("cca-threshold");
     if (parameterValue != nullptr)
     {
         long ccaThreshold = strtol(parameterValue, nullptr, 0);
@@ -123,7 +136,7 @@ void platformRadioInit(otUrl *aRadioUrl)
         SuccessOrDie(sRadioSpinel.SetCcaEnergyDetectThreshold(static_cast<int8_t>(ccaThreshold)));
     }
 
-    region = radioUrl.GetValue("region");
+    region = mRadioUrl.GetValue("region");
     if (region != nullptr)
     {
         uint16_t regionCode;
@@ -134,7 +147,7 @@ void platformRadioInit(otUrl *aRadioUrl)
     }
 
 #if OPENTHREAD_POSIX_CONFIG_MAX_POWER_TABLE_ENABLE
-    maxPowerTable = radioUrl.GetValue("max-power-table");
+    maxPowerTable = mRadioUrl.GetValue("max-power-table");
     if (maxPowerTable != nullptr)
     {
         constexpr int8_t kPowerDefault = 30; // Default power 1 watt (30 dBm).
@@ -171,9 +184,49 @@ void platformRadioInit(otUrl *aRadioUrl)
 #endif // OPENTHREAD_POSIX_CONFIG_MAX_POWER_TABLE_ENABLE
 }
 
+} // namespace Posix
+} // namespace ot
+
 void platformRadioDeinit(void)
 {
     sRadioSpinel.Deinit();
+}
+
+void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    SuccessOrDie(sRadioSpinel.GetIeeeEui64(aIeeeEui64));
+}
+
+void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    SuccessOrDie(sRadioSpinel.SetPanId(panid));
+}
+
+void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aAddress)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    otExtAddress addr;
+
+    for (size_t i = 0; i < sizeof(addr); i++)
+    {
+        addr.m8[i] = aAddress->m8[sizeof(addr) - 1 - i];
+    }
+
+    SuccessOrDie(sRadioSpinel.SetExtendedAddress(addr));
+}
+
+void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t aAddress)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    SuccessOrDie(sRadioSpinel.SetShortAddress(aAddress));
+}
+
+void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    SuccessOrDie(sRadioSpinel.SetPromiscuous(aEnable));
 }
 
 bool otPlatRadioIsEnabled(otInstance *aInstance)
@@ -435,6 +488,35 @@ otError otPlatRadioGetCoexMetrics(otInstance *aInstance, otRadioCoexMetrics *aCo
 
 exit:
     return error;
+}
+#endif
+
+#if OPENTHREAD_CONFIG_COPROCESSOR_RPC_ENABLE
+otError otPlatCRPCProcess(otInstance *aInstance,
+                          uint8_t     aArgsLength,
+                          char *      aArgs[],
+                          char *      aOutput,
+                          size_t      aOutputMaxLen)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    char  cmd[OPENTHREAD_CONFIG_COPROCESSOR_RPC_CMD_LINE_BUFFER_SIZE] = {'\0'};
+    char *cur                                                         = cmd;
+    char *end                                                         = cmd + sizeof(cmd);
+
+    for (uint8_t index = 0; (index < aArgsLength) && (cur < end); index++)
+    {
+        int ret = snprintf(cur, static_cast<size_t>(end - cur), "%s ", aArgs[index]);
+        if (ret >= 0)
+        {
+            cur += ret;
+        }
+        else
+        {
+            return OT_ERROR_FAILED;
+        }
+    }
+
+    return sRadioSpinel.PlatCRPCProcess(cmd, aOutput, aOutputMaxLen);
 }
 #endif
 

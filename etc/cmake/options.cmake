@@ -132,6 +132,11 @@ if(OT_COMMISSIONER)
     target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_COMMISSIONER_ENABLE=1")
 endif()
 
+option(OT_COPROCESSOR_RPC "enable co-processor rpc support")
+if(OT_COPROCESSOR_RPC)
+    target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_COPROCESSOR_RPC_ENABLE=1")
+endif()
+
 option(OT_CSL_RECEIVER "enable csl receiver")
 if(OT_CSL_RECEIVER)
     target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE=1")
@@ -277,6 +282,10 @@ endif()
 option(OT_PLATFORM_UDP "enable platform UDP support")
 if(OT_PLATFORM_UDP)
     target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE=1")
+endif()
+
+if(OT_POSIX_SETTINGS_PATH)
+    target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_POSIX_SETTINGS_PATH=${OT_POSIX_SETTINGS_PATH}")
 endif()
 
 option(OT_REFERENCE_DEVICE "enable Thread Test Harness reference device support")

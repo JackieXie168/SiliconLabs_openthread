@@ -66,6 +66,7 @@ NEIGHBOR_DISCOVERY_AGENT             ?= 1
 PING_SENDER                          ?= 1
 READLINE                             ?= readline
 REFERENCE_DEVICE                     ?= 1
+RESET_CONNECTION                     ?= 0
 SERVICE                              ?= 1
 SNTP_CLIENT                          ?= 1
 SRP_CLIENT                           ?= 1
@@ -116,13 +117,21 @@ configure_OPTIONS              += --with-readline=$(READLINE)
 endif
 
 ifeq ($(RCP_BUS),spi)
-COMMONCFLAGS                   += -DOPENTHREAD_POSIX_CONFIG_RCP_BUS=OT_POSIX_RCP_BUS_SPI
+    COMMONCFLAGS                   += -DOPENTHREAD_POSIX_CONFIG_RCP_BUS=OT_POSIX_RCP_BUS_SPI
+else ifeq ($(RCP_BUS),cpc)
+    COMMONCFLAGS                   += -DOPENTHREAD_POSIX_CONFIG_RCP_BUS=OT_POSIX_RCP_BUS_CPC
+    configure_OPTIONS              += --enable-cpc
 else
-COMMONCFLAGS                   += -DOPENTHREAD_POSIX_CONFIG_RCP_BUS=OT_POSIX_RCP_BUS_UART
+    COMMONCFLAGS                   += -DOPENTHREAD_POSIX_CONFIG_RCP_BUS=OT_POSIX_RCP_BUS_UART
 endif
 
 ifeq ($(VIRTUAL_TIME),1)
 COMMONCFLAGS                   += -DOPENTHREAD_POSIX_VIRTUAL_TIME=1
+endif
+
+ifeq ($(RESET_CONNECTION),1)
+COMMONCFLAGS                   += -DOPENTHREAD_SPINEL_CONFIG_RESET_CONNECTION=1
+configure_OPTIONS              += --with-udev
 endif
 
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../../examples/common-switches.mk
@@ -148,9 +157,11 @@ AbsTopSourceDir                := $(dir $(realpath $(firstword $(MAKEFILE_LIST))
 
 CONFIG_FILE      = OPENTHREAD_PROJECT_CORE_CONFIG_FILE='\"openthread-core-posix-config.h\"'
 CONFIG_FILE_PATH = $(AbsTopSourceDir)/src/posix/platform
+CORE_CONFIG_PATH = $(AbsTopSourceDir)/src/core
 COMMONCFLAGS                   += \
     -D$(CONFIG_FILE)              \
     -I$(CONFIG_FILE_PATH)         \
+    -I$(CORE_CONFIG_PATH)         \
 
 ECHO                           := @echo
 INSTALL                        := /usr/bin/install

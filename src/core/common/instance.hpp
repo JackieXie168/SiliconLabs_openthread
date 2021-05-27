@@ -51,6 +51,7 @@
 #include "common/tasklet.hpp"
 #include "common/time_ticker.hpp"
 #include "common/timer.hpp"
+#include "coprocessor/rpc.hpp"
 #include "diags/factory_diags.hpp"
 #include "radio/radio.hpp"
 
@@ -414,6 +415,9 @@ private:
 #endif
 #if OPENTHREAD_ENABLE_VENDOR_EXTENSION
     Extension::ExtensionBase &mExtension;
+#endif
+#if OPENTHREAD_CONFIG_COPROCESSOR_RPC_ENABLE
+    Coprocessor::RPC mCRPC;
 #endif
 #if OPENTHREAD_CONFIG_DIAG_ENABLE
     FactoryDiags::Diags mDiags;
@@ -780,15 +784,18 @@ template <> inline Sntp::Client &Instance::Get(void)
 }
 #endif
 
+#if OPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE
+#if OPENTHREAD_FTD
 template <> inline Utils::ChildSupervisor &Instance::Get(void)
 {
     return mThreadNetif.mChildSupervisor;
 }
-
+#endif
 template <> inline Utils::SupervisionListener &Instance::Get(void)
 {
     return mThreadNetif.mSupervisionListener;
 }
+#endif
 
 #if OPENTHREAD_CONFIG_PING_SENDER_ENABLE
 template <> inline Utils::PingSender &Instance::Get(void)

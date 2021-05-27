@@ -118,6 +118,7 @@ SOURCES_COMMON                                  = \
     api/coap_api.cpp                              \
     api/coap_secure_api.cpp                       \
     api/commissioner_api.cpp                      \
+    api/coprocessor_rpc_api.cpp                   \
     api/crypto_api.cpp                            \
     api/dataset_api.cpp                           \
     api/dataset_ftd_api.cpp                       \
@@ -180,6 +181,7 @@ SOURCES_COMMON                                  = \
     common/timer.cpp                              \
     common/tlvs.cpp                               \
     common/trickle_timer.cpp                      \
+    coprocessor/rpc.cpp                           \
     crypto/aes_ccm.cpp                            \
     crypto/aes_ecb.cpp                            \
     crypto/ecdsa.cpp                              \
@@ -270,6 +272,8 @@ SOURCES_COMMON                                  = \
     thread/network_data_local.cpp                 \
     thread/network_data_notifier.cpp              \
     thread/network_data_service.cpp               \
+    thread/network_data_tlvs.cpp                  \
+    thread/network_data_types.cpp                 \
     thread/network_diagnostic.cpp                 \
     thread/panid_query_server.cpp                 \
     thread/radio_selector.cpp                     \
@@ -299,6 +303,7 @@ EXTRA_DIST                                 = \
     $(NULL)
 
 libopenthread_radio_a_SOURCES              = \
+    api/coprocessor_rpc_api.cpp              \
     api/diags_api.cpp                        \
     api/error_api.cpp                        \
     api/heap_api.cpp                         \
@@ -314,6 +319,7 @@ libopenthread_radio_a_SOURCES              = \
     common/string.cpp                        \
     common/tasklet.cpp                       \
     common/timer.cpp                         \
+    coprocessor/rpc.cpp                      \
     crypto/aes_ccm.cpp                       \
     crypto/aes_ecb.cpp                       \
     diags/factory_diags.cpp                  \
@@ -413,6 +419,7 @@ HEADERS_COMMON                                  = \
     config/child_supervision.h                    \
     config/coap.h                                 \
     config/commissioner.h                         \
+    config/coprocessor_rpc.h                      \
     config/dataset_updater.h                      \
     config/dhcp6_client.h                         \
     config/dhcp6_server.h                         \
@@ -438,6 +445,7 @@ HEADERS_COMMON                                  = \
     config/srp_server.h                           \
     config/time_sync.h                            \
     config/tmf.h                                  \
+    coprocessor/rpc.hpp                           \
     crypto/aes_ccm.hpp                            \
     crypto/aes_ecb.hpp                            \
     crypto/ecdsa.hpp                              \
@@ -532,6 +540,7 @@ HEADERS_COMMON                                  = \
     thread/network_data_notifier.hpp              \
     thread/network_data_service.hpp               \
     thread/network_data_tlvs.hpp                  \
+    thread/network_data_types.hpp                 \
     thread/network_diagnostic.hpp                 \
     thread/network_diagnostic_tlvs.hpp            \
     thread/panid_query_server.hpp                 \

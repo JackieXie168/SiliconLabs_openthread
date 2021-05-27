@@ -124,7 +124,7 @@ Mle::Mle(Instance &aInstance)
     mParentCandidate.Clear();
     ResetCounters();
 
-    mLinkLocal64.InitAsThreadOrigin();
+    mLinkLocal64.InitAsThreadOrigin(/* aPreferred */ true);
     mLinkLocal64.GetAddress().SetToLinkLocalAddress(Get<Mac::Mac>().GetExtAddress());
 
     mLeaderAloc.InitAsThreadOriginRealmLocalScope();
@@ -822,6 +822,19 @@ void Mle::SetMeshLocalPrefix(const MeshLocalPrefix &aMeshLocalPrefix)
 exit:
     return;
 }
+
+#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+Error Mle::SetMeshLocalIid(const Ip6::InterfaceIdentifier &aMlIid)
+{
+    Error error = kErrorNone;
+
+    VerifyOrExit(!Get<ThreadNetif>().HasUnicastAddress(mMeshLocal64), error = kErrorInvalidState);
+
+    mMeshLocal64.GetAddress().SetIid(aMlIid);
+exit:
+    return error;
+}
+#endif
 
 void Mle::ApplyMeshLocalPrefix(void)
 {
@@ -2552,7 +2565,11 @@ Error Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination)
         Crypto::AesCcm::GenerateNonce(Get<Mac::Mac>().GetExtAddress(), Get<KeyManager>().GetMleFrameCounter(),
                                       Mac::Frame::kSecEncMic32, nonce);
 
+#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
+        aesCcm.SetKey(Get<KeyManager>().GetCurrentMleKeyRef());
+#else
         aesCcm.SetKey(Get<KeyManager>().GetCurrentMleKey());
+#endif
         aesCcm.Init(16 + 16 + header.GetHeaderLength(), aMessage.GetLength() - (header.GetLength() - 1), sizeof(tag),
                     nonce, sizeof(nonce));
 
@@ -2615,7 +2632,6 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     Error           error = kErrorNone;
     Header          header;
     uint32_t        keySequence;
-    const Key *     mleKey;
     uint32_t        frameCounter;
     uint8_t         messageTag[kMleSecurityTagSize];
     uint8_t         nonce[Crypto::AesCcm::kNonceSize];
@@ -2627,6 +2643,11 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     uint8_t         tag[kMleSecurityTagSize];
     uint8_t         command;
     Neighbor *      neighbor;
+#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
+    KeyRef          mleKeyRef;
+#else
+    const Key *     mleKey;
+#endif
 
     otLogDebgMle("Receive UDP message");
 
@@ -2663,7 +2684,17 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     VerifyOrExit(header.GetSecuritySuite() == Header::k154Security, error = kErrorParse);
 
     keySequence = header.GetKeyId();
-
+	
+#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
+    if (keySequence == Get<KeyManager>().GetCurrentKeySequence())
+    {
+        mleKeyRef = Get<KeyManager>().GetCurrentMleKeyRef();
+    }
+    else
+    {
+        mleKeyRef = Get<KeyManager>().GetTemporaryMleKeyRef(keySequence);
+    }
+#else
     if (keySequence == Get<KeyManager>().GetCurrentKeySequence())
     {
         mleKey = &Get<KeyManager>().GetCurrentMleKey();
@@ -2672,6 +2703,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     {
         mleKey = &Get<KeyManager>().GetTemporaryMleKey(keySequence);
     }
+#endif
 
     VerifyOrExit(aMessage.GetOffset() + header.GetLength() + sizeof(messageTag) <= aMessage.GetLength(),
                  error = kErrorParse);
@@ -2685,7 +2717,11 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     frameCounter = header.GetFrameCounter();
     Crypto::AesCcm::GenerateNonce(extAddr, frameCounter, Mac::Frame::kSecEncMic32, nonce);
 
+#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
+    aesCcm.SetKey(mleKeyRef);
+#else
     aesCcm.SetKey(*mleKey);
+#endif
     aesCcm.Init(sizeof(aMessageInfo.GetPeerAddr()) + sizeof(aMessageInfo.GetSockAddr()) + header.GetHeaderLength(),
                 aMessage.GetLength() - aMessage.GetOffset(), sizeof(messageTag), nonce, sizeof(nonce));
 
@@ -2796,7 +2832,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 #if OPENTHREAD_FTD
         if (IsRouterOrLeader())
         {
-            Get<MleRouter>().HandleChildUpdateRequest(aMessage, aMessageInfo, keySequence);
+            Get<MleRouter>().HandleChildUpdateRequest(aMessage, aMessageInfo);
         }
         else
 #endif

@@ -51,6 +51,7 @@ libopenthread_posix_a_SOURCES             = \
     hdlc_interface.cpp                      \
     infra_if.cpp                            \
     logging.cpp                             \
+    mainloop.cpp                            \
     memory.cpp                              \
     misc.cpp                                \
     multicast_routing.cpp                   \
@@ -72,11 +73,22 @@ libopenthread_posix_a_LIBADD                                                    
 
 noinst_HEADERS                            = \
     hdlc_interface.hpp                      \
+    mainloop.hpp                            \
     multicast_routing.hpp                   \
     openthread-posix-config.h               \
     platform-posix.h                        \
     radio_url.hpp                           \
     $(NULL)
+
+if OPENTHREAD_ENABLE_CPC
+libopenthread_posix_a_CPPFLAGS                                += \
+    -I${top_srcdir}/../../../platform/service/cpc/daemon/lib    \
+    -I${top_srcdir}/../../../platform/service/cpc/daemon/misc   \
+    $(NULL)
+
+libopenthread_posix_a_SOURCES += cpc_interface.cpp
+noinst_HEADERS += cpc_interface.hpp
+endif
 
 openthread_HEADERS                        = \
     include/openthread/openthread-system.h  \
