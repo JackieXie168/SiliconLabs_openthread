@@ -83,7 +83,7 @@ otError CpcInterface::Init(const Url::Url &aRadioUrl)
 
     cpc_error = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
 
-    return ((0 == cpc_error) ? OT_ERROR_NONE : OT_ERROR_FAILED);
+    return ((-1 == cpc_error) ? OT_ERROR_FAILED : OT_ERROR_NONE);
 }
 
 CpcInterface::~CpcInterface(void)
