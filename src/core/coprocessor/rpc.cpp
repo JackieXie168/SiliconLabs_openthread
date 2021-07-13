@@ -131,7 +131,7 @@ void RPC::Initialize(Instance &aInstance)
                                     RPC::sRPC->mCachedCommandsBuffer, sizeof(RPC::sRPC->mCachedCommandsBuffer)));
 
     // Parse response string into mCachedCommands to make it iterable
-    SuccessOrExit(Utils::CmdLineParser::ParseCmd(RPC::sRPC->mCachedCommandsBuffer, RPC::sRPC->mCachedCommandsLength,
+    SuccessOrExit(Utils::CmdLineParser::ParseCmd(RPC::sRPC->mCachedCommandsBuffer,
                                                  RPC::sRPC->mCachedCommands,
                                                  OT_ARRAY_LENGTH(RPC::sRPC->mCachedCommands)));
 #endif
@@ -180,8 +180,8 @@ Error RPC::ParseCmd(char *aString, uint8_t &aArgsLength, char *aArgs[])
     Error                     error;
     Utils::CmdLineParser::Arg args[kMaxArgs];
 
-    SuccessOrExit(error = Utils::CmdLineParser::ParseCmd(aString, aArgsLength, args, aArgsLength));
-    Utils::CmdLineParser::Arg::CopyArgsToStringArray(args, aArgsLength, aArgs);
+    SuccessOrExit(error = Utils::CmdLineParser::ParseCmd(aString, args, aArgsLength));
+    Utils::CmdLineParser::Arg::CopyArgsToStringArray(args, aArgs);
 
 exit:
     return error;
@@ -248,23 +248,7 @@ Error RPC::HandleCommand(void *        aContext,
                          uint8_t       aCommandsLength,
                          const Command aCommands[])
 {
-    Error error = kErrorInvalidCommand;
-
-    VerifyOrExit(aArgsLength != 0);
-
-    for (size_t i = 0; i < aCommandsLength; i++)
-    {
-        if (strcmp(aArgs[0], aCommands[i].mName) == 0)
-        {
-            // Command found, call command handler
-            (aCommands[i].mCommand)(aContext, aArgsLength - 1, (aArgsLength > 1) ? &aArgs[1] : nullptr);
-            error = kErrorNone;
-            ExitNow();
-        }
-    }
-
-exit:
-    return error;
+    return otCRPCHandleCommand(aContext, aArgsLength, aArgs, aCommandsLength, aCommands);
 }
 
 #if OPENTHREAD_COPROCESSOR
@@ -316,10 +300,10 @@ void RPC::OutputFormat(uint8_t aIndentSize, const char *aFormat, ...)
 int RPC::OutputFormatV(const char *aFormat, va_list aArguments)
 {
     int rval = 0;
+    int remaining = mOutputBufferMaxLen - mOutputBufferCount;
 
-    VerifyOrExit(mOutputBuffer && (mOutputBufferCount < mOutputBufferMaxLen));
-
-    rval = vsnprintf(&mOutputBuffer[mOutputBufferCount], mOutputBufferMaxLen, aFormat, aArguments);
+    VerifyOrExit(mOutputBuffer && (remaining > 0));
+    rval = vsnprintf(&mOutputBuffer[mOutputBufferCount], remaining, aFormat, aArguments);
     if (rval > 0)
     {
         mOutputBufferCount += static_cast<size_t>(rval);
