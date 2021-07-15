@@ -152,7 +152,6 @@ void RPC::ProcessLine(const char *aString, char *aOutput, size_t aOutputMaxLen)
     VerifyOrExit(StringLength(aString, kMaxCommandBuffer) < kMaxCommandBuffer, error = kErrorNoBufs);
 
     strcpy(buffer, aString);
-    argCount = kMaxArgs;
     error    = ParseCmd(buffer, argCount, args);
 
 exit:
@@ -183,8 +182,12 @@ Error RPC::ParseCmd(char *aString, uint8_t &aArgsLength, char *aArgs[])
     Error                     error;
     Utils::CmdLineParser::Arg args[kMaxArgs];
 
+    // Parse command string to a string array
     SuccessOrExit(error = Utils::CmdLineParser::ParseCmd(aString, args, aArgsLength));
     Utils::CmdLineParser::Arg::CopyArgsToStringArray(args, aArgs);
+
+    // Get number of args parsed
+    aArgsLength = Arg::GetArgsLength(args);
 
 exit:
     return error;
