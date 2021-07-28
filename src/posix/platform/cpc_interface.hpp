@@ -187,7 +187,7 @@ private:
 
     enum
     {
-        kMaxFrameSize = 128,
+        kMaxFrameSize = 2048,
         kMaxWaitTime  = 2000, ///< Maximum wait time in Milliseconds for socket to become writable (see `SendFrame`).
         kResetCMDSize = 4
     };
