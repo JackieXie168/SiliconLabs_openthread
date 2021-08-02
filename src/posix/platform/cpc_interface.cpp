@@ -80,7 +80,7 @@ otError CpcInterface::Init(const Url::Url &aRadioUrl)
 
     VerifyOrExit(mSockFd == -1, error = OT_ERROR_ALREADY);
 
-    VerifyOrDie(0 == cpc_init(&mHandle, false, NULL), OT_EXIT_FAILURE);
+    VerifyOrDie(0 == cpc_init(&mHandle, aRadioUrl.GetPath(), false, NULL), OT_EXIT_FAILURE);
 
     mSockFd = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
 
