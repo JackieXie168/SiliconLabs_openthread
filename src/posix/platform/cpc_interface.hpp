@@ -187,7 +187,7 @@ private:
 
     enum
     {
-        kMaxFrameSize = 128,
+        kMaxFrameSize = 2048,
         kMaxWaitTime  = 2000, ///< Maximum wait time in Milliseconds for socket to become writable (see `SendFrame`).
         kResetCMDSize = 4
     };
@@ -196,6 +196,7 @@ private:
     void *                                        mReceiveFrameContext;
     Spinel::SpinelInterface::RxFrameBuffer &      mReceiveFrameBuffer;
 
+    int                 mSockFd;
     cpc_handle_t        mHandle;
     cpc_endpoint_t      mEndpoint;
     cpc_read_flags_t    mReadFlags;

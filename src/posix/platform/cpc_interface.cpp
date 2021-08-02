@@ -28,7 +28,7 @@
 
 /**
  * @file
- *   This file includes the implementation for the HDLC interface to radio (RCP).
+ *   This file includes the implementation for the CPCd interface to radio (RCP).
  */
 
 #include "cpc_interface.hpp"
@@ -65,25 +65,32 @@ CpcInterface::CpcInterface(SpinelInterface::ReceiveFrameCallback aCallback,
     : mReceiveFrameCallback(aCallback)
     , mReceiveFrameContext(aCallbackContext)
     , mReceiveFrameBuffer(aFrameBuffer)
+    , mSockFd(-1)
 {
 }
 
 void CpcInterface::OnRcpReset(void)
 {
-    //mHdlcDecoder.Reset();
 }
 
 otError CpcInterface::Init(const Url::Url &aRadioUrl)
 {
+    otError error = OT_ERROR_NONE;
     OT_UNUSED_VARIABLE(aRadioUrl);
 
-    int cpc_error = cpc_init(&mHandle, aRadioUrl.GetPath(), false, NULL);
+    VerifyOrExit(mSockFd == -1, error = OT_ERROR_ALREADY);
 
-    VerifyOrDie(cpc_error == 0, OT_EXIT_FAILURE);
+    VerifyOrDie(0 == cpc_init(&mHandle, aRadioUrl.GetPath(), false, NULL), OT_EXIT_FAILURE);
 
-    cpc_error = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
+    mSockFd = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
 
-    return ((-1 == cpc_error) ? OT_ERROR_FAILED : OT_ERROR_NONE);
+    if (-1 == mSockFd)
+    {
+      error = OT_ERROR_FAILED;
+    }
+
+exit:
+    return error;
 }
 
 CpcInterface::~CpcInterface(void)
@@ -123,7 +130,6 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
     {
         cpc_set_endpoint_option(mEndpoint, CPC_OPTION_BLOCKING, &block, sizeof(block));
     }
-
 
     bytesRead = cpc_read_endpoint(mEndpoint, buffer, sizeof(buffer), mReadFlags);
 
@@ -199,18 +205,21 @@ otError CpcInterface::WaitForFrame(uint64_t aTimeoutUs)
 
 void CpcInterface::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMaxFd, struct timeval &aTimeout)
 {
-    // Add code to handle FD's once CPC daemon is updated
-    // to set FDs
-    OT_UNUSED_VARIABLE(aReadFdSet);
     OT_UNUSED_VARIABLE(aWriteFdSet);
-    OT_UNUSED_VARIABLE(aMaxFd);
     OT_UNUSED_VARIABLE(aTimeout);
+
+    FD_SET(mSockFd, &aReadFdSet);
+
+    if (aMaxFd < mSockFd)
+    {
+        aMaxFd = mSockFd;
+    }
 }
 
 void CpcInterface::Process(const RadioProcessContext &aContext)
 {
     OT_UNUSED_VARIABLE(aContext);
-    Read(5);
+    Read(0);
 }
 
 void CpcInterface::SendResetResponse(void)
