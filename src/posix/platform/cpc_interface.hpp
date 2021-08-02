@@ -196,6 +196,7 @@ private:
     void *                                        mReceiveFrameContext;
     Spinel::SpinelInterface::RxFrameBuffer &      mReceiveFrameBuffer;
 
+    int                 mSockFd;
     cpc_handle_t        mHandle;
     cpc_endpoint_t      mEndpoint;
     cpc_read_flags_t    mReadFlags;
