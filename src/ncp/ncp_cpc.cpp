@@ -36,6 +36,7 @@
 #include <openthread/platform/logging.h>
 #include <openthread/platform/misc.h>
 
+#include "openthread-system.h" // for otSysEventSignalPending()
 #include "openthread-core-config.h"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -84,6 +85,12 @@ NcpCPC::NcpCPC(Instance *aInstance)
                                         reinterpret_cast<void *>(HandleCPCSendDone));
 
     OT_ASSERT(status == SL_STATUS_OK);
+
+    status = sl_cpc_set_endpoint_option(&mUserEp,
+                                        SL_CPC_ENDPOINT_ON_IFRAME_RECEIVE,
+                                        reinterpret_cast<void *>(HandleCPCReceive));
+
+    OT_ASSERT(status == SL_STATUS_OK);    
 
     mTxFrameBuffer.SetFrameAddedCallback(HandleFrameAddedToNcpBuffer, this);
 }
@@ -160,6 +167,13 @@ void NcpCPC::HandleSendDone(void)
     
     if(!mTxFrameBuffer.IsEmpty())
         mCpcSendTask.Post();
+}
+
+void NcpCPC::HandleCPCReceive(sl_cpc_user_endpoint_id_t endpoint_id, void *arg)
+{
+    OT_UNUSED_VARIABLE(endpoint_id);
+    OT_UNUSED_VARIABLE(arg);
+    otSysEventSignalPending();  // wakeup ot task
 }
 
 extern "C" void efr32CpcProcess(void)
