@@ -78,6 +78,8 @@ private:
                                   void *                    arg,
                                   sl_status_t               status);
     void HandleSendDone(void);
+    static void HandleCPCReceive(sl_cpc_user_endpoint_id_t endpoint_id,
+                                 void *                    arg);
 
     uint8_t mCpcTxBuffer[kCpcTxBufferSize];
     bool mIsReady;
