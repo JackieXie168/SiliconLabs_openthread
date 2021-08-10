@@ -1,6 +1,5 @@
-#!/usr/bin/expect -f
 #
-#  Copyright (c) 2020, The OpenThread Authors.
+#  Copyright (c) 2021, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -27,44 +26,21 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-# This script verifies UDP socket can connect and disconnect when platform UDP is enabled.
+project("TCPlp" C)
 
-source "tests/scripts/expect/_common.exp"
+set(src_tcplp
+    tcplp.c
+)
 
-spawn_node 1
+set(tcplp_static_target "tcplp")
 
-set timeout 1
-
-send "panid 0xface\n"
-expect_line "Done"
-
-send "ifconfig up\n"
-expect_line "Done"
-
-send "thread start\n"
-expect_line "Done"
-
-wait_for "state" "leader"
-expect_line "Done"
-
-send "udp open\n"
-expect_line "Done"
-
-send "udp bind :: 1234\n"
-expect_line "Done"
-
-send "dataset active\n"
-expect -re {Mesh Local Prefix: ([0-9a-f:]*)::\/64}
-set prefix $expect_out(1,string)
-expect_line "Done"
-
-send "udp connect $prefix:bb1:ebd6:ad10:f33 1234\n"
-expect_line "Done"
-
-send "udp connect $prefix:1:2:3:4 4321\n"
-expect_line "Done"
-
-send "udp close\n"
-expect_line "Done"
-
-dispose_all
+add_library(${tcplp_static_target} STATIC ${src_tcplp})
+set_target_properties(${tcplp_static_target} PROPERTIES OUTPUT_NAME tcplp)
+target_include_directories(${tcplp_static_target}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/bsdtcp
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    PRIVATE
+        ${OT_PUBLIC_INCLUDES}
+        $<TARGET_PROPERTY:ot-config,INTERFACE_INCLUDE_DIRECTORIES>
+)

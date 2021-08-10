@@ -1031,6 +1031,7 @@ src/lib/url/Makefile
 third_party/Makefile
 third_party/jlink/Makefile
 third_party/mbedtls/Makefile
+third_party/tcplp/Makefile
 examples/Makefile
 examples/apps/Makefile
 examples/apps/cli/Makefile

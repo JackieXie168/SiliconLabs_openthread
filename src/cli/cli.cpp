@@ -710,11 +710,7 @@ exit:
 
 otError Interpreter::ProcessChannel(Arg aArgs[])
 {
-    otError error;
-
-    error = ProcessGetSet(aArgs, otLinkGetChannel, otLinkSetChannel);
-
-    VerifyOrExit(error != OT_ERROR_NONE);
+    otError error = OT_ERROR_NONE;
 
     if (aArgs[0] == "supported")
     {
@@ -833,8 +829,16 @@ otError Interpreter::ProcessChannel(Arg aArgs[])
         {
             error = ProcessSet(aArgs + 2, otChannelManagerSetCcaFailureRateThreshold);
         }
+        else
+        {
+            ExitNow(error = OT_ERROR_INVALID_ARGS);
+        }
     }
 #endif // OPENTHREAD_CONFIG_CHANNEL_MANAGER_ENABLE && OPENTHREAD_FTD
+    else
+    {
+        ExitNow(error = ProcessGetSet(aArgs, otLinkGetChannel, otLinkSetChannel));
+    }
 
 exit:
     return error;
@@ -1770,6 +1774,7 @@ otError Interpreter::ProcessLog(Arg aArgs[])
 #if OPENTHREAD_CONFIG_LOG_LEVEL_DYNAMIC_ENABLE
             uint8_t level;
 
+            VerifyOrExit(aArgs[2].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
             SuccessOrExit(error = aArgs[1].ParseAsUint8(level));
             error = otLoggingSetLevel(static_cast<otLogLevel>(level));
 #else

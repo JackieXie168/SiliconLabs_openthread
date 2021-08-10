@@ -36,6 +36,7 @@
 #include "common/array.hpp"
 #include "common/debug.hpp"
 #include "common/instance.hpp"
+#include "common/type_traits.hpp"
 
 #include "test_util.h"
 
@@ -47,7 +48,7 @@ void TestArray(void)
     constexpr uint16_t kStartValue = 100;
 
     Array<uint16_t, kMaxSize> array;
-    uint16_t                  index;
+    uint8_t                   index;
     uint16_t                  seed;
 
     // All methods after constructor
@@ -62,7 +63,7 @@ void TestArray(void)
 
     seed = kStartValue;
 
-    for (uint16_t len = 1; len <= kMaxSize; len++)
+    for (uint8_t len = 1; len <= kMaxSize; len++)
     {
         for (uint8_t iter = 0; iter < 2; iter++)
         {
@@ -146,7 +147,7 @@ void TestArray(void)
     VerifyOrQuit(array.PushBack(0) == kErrorNoBufs);
     VerifyOrQuit(array.PushBack() == nullptr);
 
-    for (uint16_t len = kMaxSize; len >= 1; len--)
+    for (uint8_t len = kMaxSize; len >= 1; len--)
     {
         uint16_t *entry;
 
@@ -170,7 +171,7 @@ void TestArray(void)
     VerifyOrQuit(array.IsEmpty());
 }
 
-void TestArrayCopy(void)
+void TestArrayCopyAndFindMatching(void)
 {
     constexpr uint16_t kMaxSize = 10;
 
@@ -185,6 +186,8 @@ void TestArrayCopy(void)
         }
 
         bool operator==(const Entry &aOther) { return (mName == aOther.mName) && (mYear == aOther.mYear); }
+        bool Matches(const char *aName) const { return strcmp(aName, mName) == 0; }
+        bool Matches(uint16_t aYear) const { return aYear == mYear; }
 
         const char *mName;
         uint16_t    mYear;
@@ -242,6 +245,44 @@ void TestArrayCopy(void)
             VerifyOrQuit(array2[index] == array4[index]);
         }
     }
+
+    SuccessOrQuit(array2.PushBack(ps5));
+    VerifyOrQuit(array2.GetLength() == 5);
+
+    for (const Entry &entry : array2)
+    {
+        Entry *match;
+
+        printf("- Name:%-3s Year:%d\n", entry.mName, entry.mYear);
+
+        match = array2.FindMatching(entry.mName);
+        VerifyOrQuit(match != nullptr);
+        VerifyOrQuit(match == &entry);
+        VerifyOrQuit(array2.ContainsMatching(entry.mName));
+
+        match = array2.FindMatching(entry.mYear);
+        VerifyOrQuit(match != nullptr);
+        VerifyOrQuit(match == &entry);
+        VerifyOrQuit(array2.ContainsMatching(entry.mYear));
+    }
+
+    VerifyOrQuit(array2.FindMatching("PS6") == nullptr);
+    VerifyOrQuit(!array2.ContainsMatching("PS6"));
+    VerifyOrQuit(array2.FindMatching(static_cast<uint16_t>(2001)) == nullptr);
+    VerifyOrQuit(!array2.ContainsMatching(static_cast<uint16_t>(2001)));
+
+    printf("\n");
+}
+
+void TestArrayIndexType(void)
+{
+    typedef Array<uint16_t, 255>           Array1;
+    typedef Array<uint16_t, 256>           Array2;
+    typedef Array<uint16_t, 100, uint16_t> Array3;
+
+    static_assert(TypeTraits::IsSame<Array1::IndexType, uint8_t>::kValue, "Array1::IndexType is incorrect");
+    static_assert(TypeTraits::IsSame<Array2::IndexType, uint16_t>::kValue, "Array2::IndexType is incorrect");
+    static_assert(TypeTraits::IsSame<Array3::IndexType, uint16_t>::kValue, "Array3::IndexType is incorrect");
 }
 
 } // namespace ot
@@ -249,7 +290,9 @@ void TestArrayCopy(void)
 int main(void)
 {
     ot::TestArray();
-    ot::TestArrayCopy();
+    ot::TestArrayCopyAndFindMatching();
+    ot::TestArrayIndexType();
+
     printf("All tests passed\n");
     return 0;
 }

@@ -692,10 +692,10 @@ void Mle::SetStateChild(uint16_t aRloc16)
 #endif
 
 #if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
-    if (Get<Mac::Mac>().IsCslEnabled())
+    if (Get<Mac::Mac>().IsCslCapable())
     {
-        IgnoreError(Get<Radio>().EnableCsl(Get<Mac::Mac>().GetCslPeriod(), GetParent().GetRloc16(),
-                                           &GetParent().GetExtAddress()));
+        uint32_t period = IsRxOnWhenIdle() ? 0 : Get<Mac::Mac>().GetCslPeriod();
+        IgnoreError(Get<Radio>().EnableCsl(period, GetParent().GetRloc16(), &GetParent().GetExtAddress()));
         ScheduleChildUpdateRequest();
     }
 #endif
@@ -2532,7 +2532,9 @@ Error Mle::SendLinkMetricsManagementResponse(const Ip6::Address &aDestination, L
     SuccessOrExit(error = message->Append(aStatus));
 
     SuccessOrExit(error = SendMessage(*message, aDestination));
+
 exit:
+    FreeMessageOnError(message, error);
     return error;
 }
 #endif
@@ -2555,7 +2557,9 @@ Error Mle::SendLinkProbe(const Ip6::Address &aDestination, uint8_t aSeriesId, ui
     SuccessOrExit(error = message->AppendBytes(aBuf, aLength));
 
     SuccessOrExit(error = SendMessage(*message, aDestination));
+
 exit:
+    FreeMessageOnError(message, error);
     return error;
 }
 #endif
@@ -4518,6 +4522,7 @@ Error Mle::SendLinkMetricsManagementRequest(const Ip6::Address &aDestination, co
     SuccessOrExit(error = SendMessage(*message, aDestination));
 
 exit:
+    FreeMessageOnError(message, error);
     return error;
 }
 #endif
