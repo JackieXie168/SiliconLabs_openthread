@@ -293,13 +293,11 @@ static otInstance *InitInstance(PosixConfig *aConfig)
 
     syslog(LOG_INFO, "Running %s", otGetVersionString());
     syslog(LOG_INFO, "Thread version: %hu", otThreadGetVersion());
-
-    instance = otSysInit(&aConfig->mPlatformConfig);
-    syslog(LOG_INFO, "Thread interface: %s", otSysGetThreadNetifName());
-
     IgnoreError(otLoggingSetLevel(aConfig->mLogLevel));
 
-    atexit(otSysDeinit);
+    instance = otSysInit(&aConfig->mPlatformConfig);
+    VerifyOrDie(instance != NULL, OT_EXIT_FAILURE);
+    syslog(LOG_INFO, "Thread interface: %s", otSysGetThreadNetifName());
 
     if (aConfig->mPrintRadioVersion)
     {
@@ -325,9 +323,10 @@ void otTaskletsSignalPending(otInstance *aInstance)
 
 void otPlatReset(otInstance *aInstance)
 {
+    OT_UNUSED_VARIABLE(aInstance);
+
     gPlatResetReason = OT_PLAT_RESET_REASON_SOFTWARE;
 
-    otInstanceFinalize(aInstance);
     otSysDeinit();
 
     longjmp(gResetJump, 1);
@@ -431,7 +430,7 @@ int main(int argc, char *argv[])
 #endif
 
 exit:
-    otInstanceFinalize(instance);
+    otSysDeinit();
 
     return rval;
 }

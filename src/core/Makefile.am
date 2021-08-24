@@ -129,6 +129,7 @@ SOURCES_COMMON                                  = \
     api/entropy_api.cpp                           \
     api/error_api.cpp                             \
     api/heap_api.cpp                              \
+    api/history_tracker_api.cpp                   \
     api/icmp6_api.cpp                             \
     api/instance_api.cpp                          \
     api/ip6_api.cpp                               \
@@ -141,6 +142,7 @@ SOURCES_COMMON                                  = \
     api/message_api.cpp                           \
     api/multi_radio_api.cpp                       \
     api/netdata_api.cpp                           \
+    api/netdata_publisher_api.cpp                 \
     api/netdiag_api.cpp                           \
     api/network_time_api.cpp                      \
     api/ping_sender_api.cpp                       \
@@ -274,6 +276,7 @@ SOURCES_COMMON                                  = \
     thread/network_data_leader_ftd.cpp            \
     thread/network_data_local.cpp                 \
     thread/network_data_notifier.cpp              \
+    thread/network_data_publisher.cpp             \
     thread/network_data_service.cpp               \
     thread/network_data_tlvs.cpp                  \
     thread/network_data_types.cpp                 \
@@ -292,6 +295,7 @@ SOURCES_COMMON                                  = \
     utils/child_supervision.cpp                   \
     utils/flash.cpp                               \
     utils/heap.cpp                                \
+    utils/history_tracker.cpp                     \
     utils/jam_detector.cpp                        \
     utils/lookup_table.cpp                        \
     utils/otns.cpp                                \
@@ -433,6 +437,7 @@ HEADERS_COMMON                                  = \
     config/dns_client.h                           \
     config/dnssd_server.h                         \
     config/dtls.h                                 \
+    config/history_tracker.h                      \
     config/ip6.h                                  \
     config/joiner.h                               \
     config/link_quality.h                         \
@@ -440,6 +445,7 @@ HEADERS_COMMON                                  = \
     config/logging.h                              \
     config/mac.h                                  \
     config/mle.h                                  \
+    config/netdata_publisher.h                    \
     config/openthread-core-config-check.h         \
     config/openthread-core-default-config.h       \
     config/parent_search.h                        \
@@ -544,6 +550,7 @@ HEADERS_COMMON                                  = \
     thread/network_data_leader_ftd.hpp            \
     thread/network_data_local.hpp                 \
     thread/network_data_notifier.hpp              \
+    thread/network_data_publisher.hpp             \
     thread/network_data_service.hpp               \
     thread/network_data_tlvs.hpp                  \
     thread/network_data_types.hpp                 \
@@ -564,6 +571,7 @@ HEADERS_COMMON                                  = \
     utils/child_supervision.hpp                   \
     utils/flash.hpp                               \
     utils/heap.hpp                                \
+    utils/history_tracker.hpp                     \
     utils/jam_detector.hpp                        \
     utils/lookup_table.hpp                        \
     utils/otns.hpp                                \
