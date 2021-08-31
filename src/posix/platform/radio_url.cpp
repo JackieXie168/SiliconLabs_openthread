@@ -65,7 +65,7 @@ const char *otSysGetRadioUrlHelpString(void)
 
 #elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_CPC
 
-#define OT_RADIO_URL_HELP_BUS
+#define OT_RADIO_URL_HELP_BUS                                        \
     "    spinel+cpc://cpcd_0?${Parameters} for connecting to cpcd\n" \
     "Parameters:\n"
 
