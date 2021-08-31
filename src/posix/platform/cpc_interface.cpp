@@ -80,12 +80,17 @@ otError CpcInterface::Init(const Url::Url &aRadioUrl)
 
     VerifyOrExit(mSockFd == -1, error = OT_ERROR_ALREADY);
 
-    VerifyOrDie(0 == cpc_init(&mHandle, aRadioUrl.GetPath(), false, NULL), OT_EXIT_FAILURE);
+    if (cpc_init(&mHandle, aRadioUrl.GetPath(), false, NULL) != 0)
+    {
+      otLogCritPlat("CPC init failed. Ensure radio-url argument has the form 'spinel+cpc://cpcd_0?iid=<1..3>'");
+      DieNow(OT_EXIT_FAILURE);
+    }
 
     mSockFd = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
 
     if (-1 == mSockFd)
     {
+      otLogCritPlat("CPC endpoint open failed");
       error = OT_ERROR_FAILED;
     }
 

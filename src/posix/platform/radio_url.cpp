@@ -63,6 +63,12 @@ const char *otSysGetRadioUrlHelpString(void)
     "    spi-small-packet=[n]          Specify the smallest packet we can receive in a single transaction.\n"  \
     "                                  (larger packets will require two transactions). Default value is 32.\n"
 
+#elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_CPC
+
+#define OT_RADIO_URL_HELP_BUS                                        \
+    "    spinel+cpc://cpcd_0?${Parameters} for connecting to cpcd\n" \
+    "Parameters:\n"
+
 #else
 
 #define OT_RADIO_URL_HELP_BUS                                                                        \
