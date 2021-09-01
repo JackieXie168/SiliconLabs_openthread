@@ -607,6 +607,10 @@ unsigned int NcpBase::ConvertLogRegion(otLogRegion aLogRegion)
         spinelLogRegion = SPINEL_NCP_LOG_REGION_OT_IP6;
         break;
 
+    case OT_LOG_REGION_TCP:
+        spinelLogRegion = SPINEL_NCP_LOG_REGION_OT_TCP;
+        break;
+
     case OT_LOG_REGION_MAC:
         spinelLogRegion = SPINEL_NCP_LOG_REGION_OT_MAC;
         break;
@@ -1509,8 +1513,6 @@ otError NcpBase::HandlePropertySet_SPINEL_PROP_NEST_STREAM_MFG(uint8_t aHeader)
 
     VerifyOrExit(error == OT_ERROR_NONE, error = WriteLastStatusFrame(aHeader, ThreadErrorToSpinelStatus(error)));
 
-    output[sizeof(output) - 1] = '\0';
-
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
     // TODO do not pass mfg prefix
     // skip mfg prefix from wpantund
@@ -1520,7 +1522,7 @@ otError NcpBase::HandlePropertySet_SPINEL_PROP_NEST_STREAM_MFG(uint8_t aHeader)
     }
 #endif
 
-    otDiagProcessCmdLine(mInstance, string, output, sizeof(output) - 1);
+    otDiagProcessCmdLine(mInstance, string, output, sizeof(output));
 
     // Prepare the response
     SuccessOrExit(error = mEncoder.BeginFrame(aHeader, SPINEL_CMD_PROP_VALUE_IS, SPINEL_PROP_NEST_STREAM_MFG));
