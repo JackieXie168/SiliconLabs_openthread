@@ -42,13 +42,6 @@
 namespace ot {
 namespace Crypto {
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-void AesCcm::SetKey(otMacKeyRef aKeyRef)
-{
-  mEcb.SetKey(aKeyRef);
-}
-
-#else
 void AesCcm::SetKey(const uint8_t *aKey, uint16_t aKeyLength)
 {
     Key cryptoKey;
@@ -64,7 +57,6 @@ void AesCcm::SetKey(const Mac::KeyMaterial &aMacKey)
     aMacKey.ConvertToCryptoKey(cryptoKey);
     SetKey(cryptoKey);
 }
-#endif
 
 void AesCcm::Init(uint32_t    aHeaderLength,
                   uint32_t    aPlainTextLength,

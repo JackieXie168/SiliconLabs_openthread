@@ -86,38 +86,6 @@ typedef struct otCryptoSha256Hash otCryptoSha256Hash;
  */
 void otCryptoHmacSha256(const otCryptoKey *aKey, const uint8_t *aBuf, uint16_t aBufLength, otCryptoSha256Hash *aHash);
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-/**
- * This method performs AES CCM computation.
- *
- * @param[in]     aKeyRef        A reference to the key.
- * @param[in]     aTagLength     Length of tag in bytes.
- * @param[in]     aNonce         A pointer to the nonce.
- * @param[in]     aNonceLength   Length of nonce in bytes.
- *
- * @param[in]     aHeader        A pointer to the header.
- * @param[in]     aHeaderLength  Length of header in bytes.
- *
- * @param[inout]  aPlainText     A pointer to the plaintext.
- * @param[inout]  aCipherText    A pointer to the ciphertext.
- * @param[in]     aLength        Plaintext length in bytes.
- * @param[in]     aEncrypt       `true` on encrypt and `false` on decrypt.
- *
- * @param[out]    aTag           A pointer to the tag.
- *
- */
-void otCryptoAesCcm(uint32_t       aKeyRef,
-                    uint8_t        aTagLength,
-                    const void *   aNonce,
-                    uint8_t        aNonceLength,
-                    const void *   aHeader,
-                    uint32_t       aHeaderLength,
-                    void *         aPlainText,
-                    void *         aCipherText,
-                    uint32_t       aLength,
-                    bool           aEncrypt,
-                    void *         aTag);
-#else
 /**
  * This method performs AES CCM computation.
  *

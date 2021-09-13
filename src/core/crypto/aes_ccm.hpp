@@ -75,16 +75,6 @@ public:
         kDecrypt, // Decryption mode.
     };
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    /**
-     * This method sets the key.
-     *
-     * @param[in]  aKeyRef    Reference to the Key to use.
-     *
-     */
-    void SetKey(const uint32_t aKeyRef);
-#endif
-
     /**
      * This method sets the key.
      *
