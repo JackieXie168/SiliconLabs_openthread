@@ -33,39 +33,39 @@
 
 #include "sha256.hpp"
 
+#include "common/debug.hpp"
+#include "common/error.hpp"
 #include "common/message.hpp"
 
 namespace ot {
 namespace Crypto {
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-
 Sha256::Sha256(void)
 {
-    mOperation = PSA_HASH_OPERATION_INIT;
+    Error err = otPlatCryptoSha256Init(&mContext, sizeof(mContext));
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
 Sha256::~Sha256(void)
 {
-    psa_status_t error = psa_hash_abort(&mOperation);
-
-    (void)error;
+    Error err = otPlatCryptoSha256Deinit(&mContext, sizeof(mContext));
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
 void Sha256::Start(void)
 {
-    psa_status_t error = psa_hash_setup(&mOperation, PSA_ALG_SHA_256);
-
-    (void)error;
+    Error err = otPlatCryptoSha256Start(&mContext, sizeof(mContext));
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
 void Sha256::Update(const void *aBuf, uint16_t aBufLength)
 {
-    psa_status_t error;
-
-    error = psa_hash_update(&mOperation, reinterpret_cast<const uint8_t *>(aBuf), aBufLength);
-
-    (void)error;
+    Error err = otPlatCryptoSha256Update(&mContext, sizeof(mContext), aBuf, aBufLength);
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
 void Sha256::Update(const Message &aMessage, uint16_t aOffset, uint16_t aLength)
@@ -83,51 +83,9 @@ void Sha256::Update(const Message &aMessage, uint16_t aOffset, uint16_t aLength)
 
 void Sha256::Finish(Hash &aHash)
 {
-    size_t aHashLength = 0;
-    psa_status_t error;
-
-    error = psa_hash_finish(&mOperation, aHash.m8, aHash.kSize, &aHashLength);
-
-    (void)error;
+    Error err = otPlatCryptoSha256Finish(&mContext, sizeof(mContext), aHash.m8, Hash::kSize);
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
-#else
-Sha256::Sha256(void)
-{
-    mbedtls_sha256_init(&mContext);
-}
-
-Sha256::~Sha256(void)
-{
-    mbedtls_sha256_free(&mContext);
-}
-
-void Sha256::Start(void)
-{
-    mbedtls_sha256_starts_ret(&mContext, 0);
-}
-
-void Sha256::Update(const void *aBuf, uint16_t aBufLength)
-{
-    mbedtls_sha256_update_ret(&mContext, reinterpret_cast<const uint8_t *>(aBuf), aBufLength);
-}
-
-void Sha256::Update(const Message &aMessage, uint16_t aOffset, uint16_t aLength)
-{
-    Message::Chunk chunk;
-
-    aMessage.GetFirstChunk(aOffset, aLength, chunk);
-
-    while (chunk.GetLength() > 0)
-    {
-        Update(chunk.GetData(), chunk.GetLength());
-        aMessage.GetNextChunk(aLength, chunk);
-    }
-}
-
-void Sha256::Finish(Hash &aHash)
-{
-    mbedtls_sha256_finish_ret(&mContext, aHash.m8);
-}
-#endif
 } // namespace Crypto
 } // namespace ot

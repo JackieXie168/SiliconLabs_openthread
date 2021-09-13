@@ -38,12 +38,13 @@
 
 #include <openthread/link.h>
 
+#include <openthread/platform/crypto.h>
+
 #include "common/locator.hpp"
 #include "common/non_copyable.hpp"
 #include "common/timer.hpp"
 #include "mac/mac_frame.hpp"
 #include "radio/radio.hpp"
-#include <openthread/platform/psa.h>
 
 namespace ot {
 
@@ -486,44 +487,6 @@ public:
 
 #endif // OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    /**
-     * This method sets MAC key references and key index.
-     *
-     * @param[in] aKeyIdMode  MAC key ID mode.
-     * @param[in] aKeyId      The key ID.
-     * @param[in] aPrevKeyRef The reference to previous MAC key.
-     * @param[in] aCurrKeyRef The reference to current MAC key.
-     * @param[in] aNextKeyRef The reference to next MAC key.
-     *
-     */
-    void SetMacKey(uint8_t aKeyIdMode, uint8_t aKeyId, otMacKeyRef aPrevKeyRef, otMacKeyRef aCurrKeyRef, otMacKeyRef aNextKeyRef);
-
-    /**
-     * This method returns a reference to the current MAC key.
-     *
-     * @returns A reference to the current MAC key.
-     *
-     */
-    otMacKeyRef GetCurrentMacKeyRef(void) { return mCurrKeyRef; }
-
-    /**
-     * This method returns a reference to the previous MAC key.
-     *
-     * @returns A reference to the previous MAC key.
-     *
-     */
-    otMacKeyRef GetPreviousMacKeyRef(void) { return mPrevKeyRef; }
-
-    /**
-     * This method returns a reference to the next MAC key.
-     *
-     * @returns A reference to the next MAC key.
-     *
-     */
-    otMacKeyRef GetNextMacKeyRef(void) { return mNextKeyRef; }
-
-#else
     /**
      * This method sets MAC keys and key index.
      *
@@ -534,15 +497,19 @@ public:
      * @param[in] aNextKey    The next MAC key.
      *
      */
-    void SetMacKey(uint8_t aKeyIdMode, uint8_t aKeyId, const Key &aPrevKey, const Key &aCurrKey, const Key &aNextKey);
+    void SetMacKey(uint8_t            aKeyIdMode,
+                   uint8_t            aKeyId,
+                   const KeyMaterial &aPrevKey,
+                   const KeyMaterial &aCurrKey,
+                   const KeyMaterial &aNextKey);
 
     /**
-     * This method returns the current MAC key.
+     * This method returns a reference to the current MAC key.
      *
      * @returns A reference to the current MAC key.
      *
      */
-    const Key &GetCurrentMacKey(void) const { return mCurrKey; }
+    const KeyMaterial &GetCurrentMacKey(void) const { return mCurrKey; }
 
     /**
      * This method returns a reference to the previous MAC key.
@@ -550,7 +517,7 @@ public:
      * @returns A reference to the previous MAC key.
      *
      */
-    const Key &GetPreviousMacKey(void) const { return mPrevKey; }
+    const KeyMaterial &GetPreviousMacKey(void) const { return mPrevKey; }
 
     /**
      * This method returns a reference to the next MAC key.
@@ -558,8 +525,7 @@ public:
      * @returns A reference to the next MAC key.
      *
      */
-    const Key &GetNextMacKey(void) const { return mNextKey; }
-#endif
+    const KeyMaterial &GetNextMacKey(void) const { return mNextKey; }
 
     /**
      * This method returns the current MAC frame counter value.
@@ -621,10 +587,6 @@ private:
     // than expected sample window. The value is in usec.
     static constexpr uint32_t kCslReceiveTimeAhead = OPENTHREAD_CONFIG_CSL_RECEIVE_TIME_AHEAD;
 
-    static constexpr uint8_t kCslWorstCrystalPpm  = 255; // Worst possible crystal accuracy, in units of ± ppm.
-    static constexpr uint8_t kCslWorstUncertainty = 255; // Worst possible scheduling uncertainty, in units of 100 us.
-    static constexpr uint8_t kUsPerUncertUnit     = 100; // Number of microseconds by uncertainty unit.
-
     enum CslState : uint8_t{
         kCslIdle,   // CSL receiver is not started.
         kCslSample, // Sampling CSL channel.
@@ -685,15 +647,9 @@ private:
     Callbacks          mCallbacks;
     otLinkPcapCallback mPcapCallback;
     void *             mPcapCallbackContext;
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    otMacKeyRef        mPrevKeyRef;
-    otMacKeyRef        mCurrKeyRef;
-    otMacKeyRef        mNextKeyRef;
-#else
-    Key                mPrevKey;
-    Key                mCurrKey;
-    Key                mNextKey;
-#endif
+    KeyMaterial        mPrevKey;
+    KeyMaterial        mCurrKey;
+    KeyMaterial        mNextKey;
     uint32_t           mFrameCounter;
     uint8_t            mKeyId;
 #if OPENTHREAD_CONFIG_PLATFORM_USEC_TIMER_ENABLE

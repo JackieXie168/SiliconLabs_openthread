@@ -51,12 +51,18 @@ void AesCcm::SetKey(otMacKeyRef aKeyRef)
 #else
 void AesCcm::SetKey(const uint8_t *aKey, uint16_t aKeyLength)
 {
-    mEcb.SetKey(aKey, CHAR_BIT * aKeyLength);
+    Key cryptoKey;
+
+    cryptoKey.Set(aKey, aKeyLength);
+    SetKey(cryptoKey);
 }
 
-void AesCcm::SetKey(const Mac::Key &aMacKey)
+void AesCcm::SetKey(const Mac::KeyMaterial &aMacKey)
 {
-    SetKey(aMacKey.GetKey(), Mac::Key::kSize);
+    Key cryptoKey;
+
+    aMacKey.ConvertToCryptoKey(cryptoKey);
+    SetKey(cryptoKey);
 }
 #endif
 

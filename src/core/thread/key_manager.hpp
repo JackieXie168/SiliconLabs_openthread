@@ -40,6 +40,7 @@
 
 #include <openthread/dataset.h>
 
+#include <openthread/platform/crypto.h>
 #include "common/clearable.hpp"
 #include "common/encoding.hpp"
 #include "common/equatable.hpp"
@@ -50,7 +51,6 @@
 #include "crypto/hmac_sha256.hpp"
 #include "mac/mac_types.hpp"
 #include "thread/mle_types.hpp"
-#include <openthread/platform/psa.h>
 
 namespace ot {
 
@@ -134,36 +134,30 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
 class NetworkKey : public otNetworkKey, public Equatable<NetworkKey>, public Clearable<NetworkKey>
 {
 public:
+    static constexpr uint8_t kSize = OT_NETWORK_KEY_SIZE; ///< Size of the Thread Network Key (in bytes).
+
 #if !OPENTHREAD_RADIO
     /**
-     * This method generates a cryptographically secure random sequence to populate the Thread Master Key.
+     * This method generates a cryptographically secure random sequence to populate the Thread Network Key.
      *
-     * @retval kErrorNone     Successfully generated a random Thread Master Key.
+     * @retval kErrorNone     Successfully generated a random Thread Network Key.
      * @retval kErrorFailed   Failed to generate random sequence.
      *
      */
     Error GenerateRandom(void) { return Random::Crypto::FillBuffer(m8, sizeof(m8)); }
 #endif
+
 } OT_TOOL_PACKED_END;
-#else
-class NetworkKey : public otNetworkKey, public Equatable<NetworkKey>
-{
-public:
-#if !OPENTHREAD_RADIO
-    /**
-     * This method generates a cryptographically secure random sequence to populate the Thread Master Key.
-     *
-     * @retval kErrorNone     Successfully generated a random Thread Master Key.
-     * @retval kErrorFailed   Failed to generate random sequence.
-     *
-     */
-    Error GenerateRandom(void) { return Random::Crypto::FillBuffer(m8, sizeof(m8)); }
-#endif
-} OT_TOOL_PACKED_END;
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+/**
+ * Provides a representation for Network Key reference.
+ *
+ */
+typedef otNetworkKeyRef NetworkKeyRef;
 #endif
 
 /**
@@ -174,6 +168,8 @@ OT_TOOL_PACKED_BEGIN
 class Pskc : public otPskc, public Equatable<Pskc>, public Clearable<Pskc>
 {
 public:
+    static constexpr uint8_t kSize = OT_PSKC_MAX_SIZE; ///< Size (number of bytes) of the PSKc.
+
 #if !OPENTHREAD_RADIO
     /**
      * This method generates a cryptographically secure random sequence to populate the Thread PSKc.
@@ -181,10 +177,17 @@ public:
      * @retval kErrorNone  Successfully generated a random Thread PSKc.
      *
      */
-    Error GenerateRandom(void) { return Random::Crypto::FillBuffer(m8, sizeof(Pskc)); }
+    Error GenerateRandom(void) { return Random::Crypto::FillBuffer(m8, sizeof(m8)); }
 #endif
-
 } OT_TOOL_PACKED_END;
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+/**
+ * Provides a representation for Network Key reference.
+ *
+ */
+typedef otPskcRef PskcRef;
+#endif
 
 /**
  *
@@ -193,14 +196,12 @@ public:
  */
 typedef Mac::Key Kek;
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
 /**
  *
- * This enum a reference to a key stored in PSA.
+ * This class represents a Key Material for Key Encryption Key (KEK).
  *
  */
-typedef otMacKeyRef KeyRef;
-#endif
+typedef Mac::KeyMaterial KekKeyMaterial;
 
 /**
  * This class defines Thread Key Manager.
@@ -209,6 +210,9 @@ typedef otMacKeyRef KeyRef;
 class KeyManager : public InstanceLocator, private NonCopyable
 {
 public:
+    static constexpr uint32_t kNetworkKeyPsaItsOffset = OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET + 1;
+    static constexpr uint32_t kPskcPsaItsOffset       = OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET + 2;
+
     /**
      * This constructor initializes the object.
      *
@@ -229,36 +233,40 @@ public:
      */
     void Stop(void);
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
     /**
-     * This method returns the Thread Master Key.
+     * This method gets the Thread Network Key.
      *
-     * @returns The Thread Master Key.
+     * @param[out] aNetworkKey   A reference to a `NetworkKey` to output the Thread Network Key.
      *
      */
-    NetworkKey &GetNetworkKey(void);
-#else
+    void GetNetworkKey(NetworkKey &aNetworkKey) const;
+
     /**
-     * This method returns the Thread Master Key.
+     * This method sets the Thread Network Key.
      *
-     * @returns The Thread Master Key.
+     * @param[in]  aNetworkKey        A Thread Network Key.
      *
      */
-    const NetworkKey &GetNetworkKey(void) const { return mNetworkKey; }
+    void SetNetworkKey(const NetworkKey &aNetworkKey);
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    /**
+     * This method returns a Key Ref to Thread Network Key.
+     *
+     * @returns A key reference to the Thread Network Key.
+     *
+     */
+    NetworkKeyRef GetNetworkKeyRef(void) { return mNetworkKeyRef; }
+
+    /**
+     * This method sets the Thread Network Key using Key Reference.
+     *
+     * @param[in]  aKeyRef        Reference to Thread Network Key.
+     *
+     */
+    void SetNetworkKeyRef(NetworkKeyRef aKeyRef);
 #endif
 
-    /**
-     * This method sets the Thread Master Key.
-     *
-     * @param[in]  aKey        A Thread Master Key.
-     *
-     * @retval kErrorNone         Successfully set the Thread Master Key.
-     * @retval kErrorInvalidArgs  The @p aKeyLength value was invalid.
-     *
-     */
-    Error SetNetworkKey(const NetworkKey &aKey);
-
-#if OPENTHREAD_FTD || OPENTHREAD_MTD
     /**
      * This method indicates whether the PSKc is configured.
      *
@@ -270,23 +278,14 @@ public:
      */
     bool IsPskcSet(void) const { return mIsPskcSet; }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
     /**
-     * This method returns a pointer to the PSKc.
+     * This method gets the PKSc.
      *
-     * @returns A reference to the PSKc.
+     * @param[out] aPskc  A reference to a `Pskc` to return the PSKc.
      *
      */
-    Pskc &GetPskc(void);
-#else
-    /**
-     * This method returns a pointer to the PSKc.
-     *
-     * @returns A reference to the PSKc.
-     *
-     */
-    const Pskc &GetPskc(void) const { return mPskc; }
-#endif
+    void GetPskc(Pskc &aPskc) const;
+
     /**
      * This method sets the PSKc.
      *
@@ -294,6 +293,23 @@ public:
      *
      */
     void SetPskc(const Pskc &aPskc);
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    /**
+     * This method returns a Key Ref to PSKc.
+     *
+     * @returns A key reference to the PSKc.
+     *
+     */
+    const PskcRef &GetPskcRef(void) { return mPskcRef; }
+
+    /**
+     * This method sets the PSKc as a Key reference.
+     *
+     * @param[in]  aPskc    A reference to the PSKc.
+     *
+     */
+    void SetPskcRef(PskcRef aKeyRef);
 #endif
 
     /**
@@ -319,7 +335,7 @@ public:
      * @returns The current TREL MAC key.
      *
      */
-    const Mac::Key &GetCurrentTrelMacKey(void) const { return mTrelKey; }
+    const Mac::KeyMaterial &GetCurrentTrelMacKey(void) const { return mTrelKey; }
 
     /**
      * This method returns a temporary MAC key for TREL radio link computed from the given key sequence.
@@ -329,47 +345,26 @@ public:
      * @returns The temporary TREL MAC key.
      *
      */
-    const Mac::Key &GetTemporaryTrelMacKey(uint32_t aKeySequence);
+    const Mac::KeyMaterial &GetTemporaryTrelMacKey(uint32_t aKeySequence);
 #endif
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
     /**
-     * This method returns the reference to current MLE.
-     *
-     * @returns The reference to current MLE key.
-     *
-     */
-    KeyRef GetCurrentMleKeyRef(void) { return mMleKeyRef; }
-
-    /**
-     * This method returns a reference to temporary MLE key computed from the given key sequence.
-     *
-     * @param[in]  aKeySequence  The key sequence value.
-     *
-     * @returns The reference to temporary MLE key.
-     *
-     */
-    KeyRef GetTemporaryMleKeyRef(uint32_t aKeySequence);
-
-#else
-    /**
-     * This method returns the current MLE key.
+     * This method returns the current MLE key Material.
      *
      * @returns The current MLE key.
      *
      */
-    const Mle::Key &GetCurrentMleKey(void) const { return mMleKey; }
+    const Mle::KeyMaterial &GetCurrentMleKey(void) const { return mMleKey; }
 
     /**
-     * This method returns a temporary MLE key computed from the given key sequence.
+     * This method returns a temporary MLE key Material computed from the given key sequence.
      *
      * @param[in]  aKeySequence  The key sequence value.
      *
      * @returns The temporary MLE key.
      *
      */
-    const Mle::Key &GetTemporaryMleKey(uint32_t aKeySequence);
-#endif
+    const Mle::KeyMaterial &GetTemporaryMleKey(uint32_t aKeySequence);
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_IEEE_802_15_4_ENABLE
     /**
@@ -451,31 +446,21 @@ public:
      */
     void IncrementMleFrameCounter(void);
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
     /**
-     * This method returns the KEK.
+     * This method returns the KEK as `KekKeyMaterail`
      *
-     * @returns A pointer to the KEK.
-     *
-     */
-    KeyRef GetKekRef(void) { return mKekRef; }
-	
-	/**
-     * This method returns the KEK.
-     *
-     * @returns A pointer to the KEK.
+     * @returns The KEK as `KekKeyMaterial`.
      *
      */
-    const Kek &GetKek(void);
-#else
+    const KekKeyMaterial &GetKek(void) const { return mKek; }
+
     /**
-     * This method returns the KEK.
+     * This method retrieves the KEK as literal `Kek` key.
      *
-     * @returns A pointer to the KEK.
+     * @param[out] aKek  A reference to a `Kek` to output the retrieved KEK.
      *
      */
-    const Kek &GetKek(void) const { return mKek; }
-#endif	
+    void ExtractKek(Kek &aKek) { mKek.ExtractKey(aKek); }
 
     /**
      * This method sets the KEK.
@@ -488,10 +473,10 @@ public:
     /**
      * This method sets the KEK.
      *
-     * @param[in]  aKek  A pointer to the KEK.
+     * @param[in]  aKekBytes  A pointer to the KEK bytes.
      *
      */
-    void SetKek(const uint8_t *aKek);
+    void SetKek(const uint8_t *aKekBytes) { SetKek(*reinterpret_cast<const Kek *>(aKekBytes)); }
 
     /**
      * This method returns the current KEK Frame Counter value.
@@ -567,14 +552,6 @@ private:
     static constexpr uint32_t kDefaultKeySwitchGuardTime = 624;
     static constexpr uint32_t kOneHourIntervalInMsec     = 3600u * 1000u;
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    enum
-    {
-        kNetworkKeyPsaItsOffset     = OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET + 1,
-        kPkscPsaItsOffset          = OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET + 2
-    };
-#endif
-
     OT_TOOL_PACKED_BEGIN
     struct Keys
     {
@@ -586,23 +563,27 @@ private:
     {
         Crypto::HmacSha256::Hash mHash;
         Keys                     mKeys;
+
+        const Mle::Key &GetMleKey(void) const { return mKeys.mMleKey; }
+        const Mac::Key &GetMacKey(void) const { return mKeys.mMacKey; }
     };
 
     void ComputeKeys(uint32_t aKeySequence, HashKeys &aHashKeys);
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
-    void ComputeTrelKey(uint32_t aKeySequence, Mac::Key &aTrelKey);
+    void ComputeTrelKey(uint32_t aKeySequence, Mac::Key &aKey);
 #endif
 
     void        StartKeyRotationTimer(void);
     static void HandleKeyRotationTimer(Timer &aTimer);
     void        HandleKeyRotationTimer(void);
-    Error       StoreNetworkKey(bool aOverWriteExisting);
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    Error ImportKek(const uint8_t *aKey, uint8_t aKeyLen);
-    void  CheckAndDestroyStoredKey(psa_key_id_t aKeyRef);
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    void StoreNetworkKey(const NetworkKey &aNetworkKey, bool aOverWriteExisting);
+    void StorePskc(const Pskc &aPskc);
 #endif
+
+    void ResetFrameCounters(void);
 
     static const uint8_t kThreadString[];
 
@@ -611,17 +592,19 @@ private:
     static const uint8_t kTrelInfoString[];
 #endif
 
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    NetworkKeyRef mNetworkKeyRef;
+#else
     NetworkKey mNetworkKey;
-
-    uint32_t mKeySequence;
-#if !OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    Mle::Key mMleKey;
-    Mle::Key mTemporaryMleKey;
 #endif
 
+    uint32_t         mKeySequence;
+    Mle::KeyMaterial mMleKey;
+    Mle::KeyMaterial mTemporaryMleKey;
+
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
-    Mac::Key mTrelKey;
-    Mac::Key mTemporaryTrelKey;
+    Mac::KeyMaterial mTrelKey;
+    Mac::KeyMaterial mTemporaryTrelKey;
 #endif
 
     Mac::LinkFrameCounters mMacFrameCounters;
@@ -634,24 +617,17 @@ private:
     bool       mKeySwitchGuardEnabled;
     TimerMilli mKeyRotationTimer;
 
-#if OPENTHREAD_MTD || OPENTHREAD_FTD
-    Pskc mPskc;
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    PskcRef mPskcRef;
+#else
+    Pskc       mPskc;
 #endif
-    Kek      mKek;
-    uint32_t mKekFrameCounter;
+
+    KekKeyMaterial mKek;
+    uint32_t       mKekFrameCounter;
 
     SecurityPolicy mSecurityPolicy;
     bool           mIsPskcSet : 1;
-
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    KeyRef mNetworkKeyRef;
-    KeyRef mMleKeyRef;
-    KeyRef mTemporaryMleKeyRef;
-    KeyRef mKekRef;
-#if OPENTHREAD_MTD || OPENTHREAD_FTD    
-    KeyRef mPskcRef;
-#endif    
-#endif
 };
 
 /**

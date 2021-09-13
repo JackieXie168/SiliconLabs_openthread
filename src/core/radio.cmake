@@ -55,9 +55,13 @@ target_sources(openthread-radio PRIVATE
     common/string.cpp
     common/tasklet.cpp
     common/timer.cpp
+    common/uptime.cpp
     coprocessor/rpc.cpp
     crypto/aes_ccm.cpp
     crypto/aes_ecb.cpp
+    crypto/crypto_platform.cpp
+    crypto/hmac_sha256.cpp
+    crypto/storage.cpp
     diags/factory_diags.cpp
     mac/link_raw.cpp
     mac/mac_frame.cpp
