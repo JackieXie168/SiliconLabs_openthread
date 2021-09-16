@@ -64,6 +64,7 @@ private:
         kCpcTxBufferSize = OPENTHREAD_CONFIG_NCP_CPC_TX_CHUNK_SIZE
     };
 
+    void OpenEndpoint(void);
     void HandleFrameAddedToNcpBuffer(void);
 
     static void HandleFrameAddedToNcpBuffer(void *                   aContext,
@@ -80,7 +81,9 @@ private:
     void HandleSendDone(void);
     static void HandleCPCReceive(sl_cpc_user_endpoint_id_t endpoint_id,
                                  void *                    arg);
-
+    static void HandleCPCEndpointError(uint8_t endpoint_id, void *arg);
+    void HandleEndpointError(void);
+  
     uint8_t mCpcTxBuffer[kCpcTxBufferSize];
     bool mIsReady;
     bool mIsWriting;
