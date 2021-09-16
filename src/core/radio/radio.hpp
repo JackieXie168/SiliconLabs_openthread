@@ -37,12 +37,11 @@
 #include "openthread-core-config.h"
 
 #include <openthread/platform/radio.h>
-#include <openthread/platform/radio_psa.h>
 
+#include <openthread/platform/crypto.h>
 #include "common/locator.hpp"
 #include "common/non_copyable.hpp"
 #include "mac/mac_frame.hpp"
-#include <openthread/platform/psa.h>
 
 namespace ot {
 
@@ -269,23 +268,6 @@ public:
      */
     void SetShortAddress(Mac::ShortAddress aShortAddress);
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    /**
-     * This method sets MAC key and key ID.
-     *
-     * @param[in] aKeyIdMode  MAC key ID mode.
-     * @param[in] aKeyId      Current MAC key index.
-     * @param[in] aPrevKeyRef The previous MAC key reference.
-     * @param[in] aCurrKeyRef The current MAC key reference.
-     * @param[in] aNextKeyRef The next MAC key reference.
-     *
-     */
-    void SetMacKey(uint8_t     aKeyIdMode,
-                   uint8_t     aKeyId,
-                   otMacKeyRef aPrevKeyRef,
-                   otMacKeyRef aCurrKeyRef,
-                   otMacKeyRef aNextKeyRef);
-#else
     /**
      * This method sets MAC key and key ID.
      *
@@ -296,12 +278,11 @@ public:
      * @param[in] aNextKey    The next MAC key.
      *
      */
-    void SetMacKey(uint8_t         aKeyIdMode,
-                   uint8_t         aKeyId,
-                   const Mac::Key &aPrevKey,
-                   const Mac::Key &aCurrKey,
-                   const Mac::Key &aNextKey);
-#endif
+    void SetMacKey(uint8_t                 aKeyIdMode,
+                   uint8_t                 aKeyId,
+                   const Mac::KeyMaterial &aPrevKey,
+                   const Mac::KeyMaterial &aCurrKey,
+                   const Mac::KeyMaterial &aNextKey);
 
     /**
      * This method sets the current MAC Frame Counter value.
@@ -724,30 +705,22 @@ inline void Radio::SetPanId(Mac::PanId aPanId)
     otPlatRadioSetPanId(GetInstancePtr(), aPanId);
 }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-inline void Radio::SetMacKey(uint8_t     aKeyIdMode,
-                             uint8_t     aKeyId,
-                             otMacKeyRef aPrevKeyRef,
-                             otMacKeyRef aCurrKeyRef,
-                             otMacKeyRef aNextKeyRef)
+inline void Radio::SetMacKey(uint8_t                 aKeyIdMode,
+                             uint8_t                 aKeyId,
+                             const Mac::KeyMaterial &aPrevKey,
+                             const Mac::KeyMaterial &aCurrKey,
+                             const Mac::KeyMaterial &aNextKey)
 {
-    otPlatRadioSetMacKeyRef(GetInstancePtr(), 
-                            aKeyIdMode, 
-                            aKeyId, 
-                            aPrevKeyRef, 
-                            aCurrKeyRef, 
-                            aNextKeyRef);
-}
+    otRadioKeyType aKeyType;
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    aKeyType = OT_KEY_TYPE_KEY_REF;
 #else
-inline void Radio::SetMacKey(uint8_t         aKeyIdMode,
-                             uint8_t         aKeyId,
-                             const Mac::Key &aPrevKey,
-                             const Mac::Key &aCurrKey,
-                             const Mac::Key &aNextKey)
-{
-    otPlatRadioSetMacKey(GetInstancePtr(), aKeyIdMode, aKeyId, &aPrevKey, &aCurrKey, &aNextKey);
-}
+    aKeyType = OT_KEY_TYPE_LITERAL_KEY;
 #endif
+
+    otPlatRadioSetMacKey(GetInstancePtr(), aKeyIdMode, aKeyId, &aPrevKey, &aCurrKey, &aNextKey, aKeyType);
+}
 
 inline Error Radio::GetTransmitPower(int8_t &aPower)
 {
@@ -912,7 +885,11 @@ inline void Radio::SetShortAddress(Mac::ShortAddress)
 {
 }
 
-inline void Radio::SetMacKey(uint8_t, uint8_t, const Mac::Key &, const Mac::Key &, const Mac::Key &)
+inline void Radio::SetMacKey(uint8_t,
+                             uint8_t,
+                             const Mac::KeyMaterial &,
+                             const Mac::KeyMaterial &,
+                             const Mac::KeyMaterial &)
 {
 }
 

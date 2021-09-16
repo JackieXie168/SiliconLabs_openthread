@@ -59,6 +59,7 @@ class OtbrDocker:
     _docker_proc = None
 
     def __init__(self, nodeid: int, **kwargs):
+        self.verbose = int(float(os.getenv('VERBOSE', 0)))
         try:
             self._docker_name = config.OTBR_DOCKER_NAME_PREFIX + str(nodeid)
             self._prepare_ot_rcp_sim(nodeid)
@@ -137,6 +138,8 @@ class OtbrDocker:
 
         cmd = f'docker exec -i {self._docker_name} ot-ctl'
         self.pexpect = pexpect.popen_spawn.PopenSpawn(cmd, timeout=30)
+        if self.verbose:
+            self.pexpect.logfile_read = sys.stdout.buffer
 
         # Add delay to ensure that the process is ready to receive commands.
         timeout = 0.4
@@ -716,6 +719,10 @@ class NodeImpl:
         self.thread_stop()
         self.interface_down()
 
+    def set_log_level(self, level: int):
+        self.send_command(f'log level {level}')
+        self._expect_done()
+
     def interface_up(self):
         self.send_command('ifconfig up')
         self._expect_done()
@@ -799,6 +806,23 @@ class NodeImpl:
         states = ['disabled', 'running', 'stopped']
         self.send_command('srp server state')
         return self._expect_result(states)
+
+    def srp_server_get_addr_mode(self):
+        modes = [r'unicast', r'anycast']
+        self.send_command(f'srp server addrmode')
+        return self._expect_result(modes)
+
+    def srp_server_set_addr_mode(self, mode):
+        self.send_command(f'srp server addrmode {mode}')
+        self._expect_done()
+
+    def srp_server_get_anycast_seq_num(self):
+        self.send_command(f'srp server seqnum')
+        return int(self._expect_result(r'\d+'))
+
+    def srp_server_set_anycast_seq_num(self, seqnum):
+        self.send_command(f'srp server seqnum {seqnum}')
+        self._expect_done()
 
     def srp_server_set_enabled(self, enable):
         cmd = f'srp server {"enable" if enable else "disable"}'
@@ -1875,6 +1899,9 @@ class NodeImpl:
     def reset(self):
         self.send_command('reset')
         time.sleep(self.RESET_DELAY)
+
+        if self.is_otbr:
+            self.set_log_level(5)
 
     def set_router_selection_jitter(self, jitter):
         cmd = 'routerselectionjitter %d' % jitter
@@ -3120,6 +3147,7 @@ class OtbrNode(LinuxHost, NodeImpl, OtbrDocker):
 
     def start(self):
         self._setup_sysctl()
+        self.set_log_level(5)
         super().start()
 
 

@@ -38,8 +38,10 @@
 
 #include <stdint.h>
 
+#include <openthread/platform/crypto.h>
 #include "common/error.hpp"
 #include "crypto/aes_ecb.hpp"
+#include "crypto/storage.hpp"
 #include "mac/mac_types.hpp"
 
 namespace ot {
@@ -73,15 +75,13 @@ public:
         kDecrypt, // Decryption mode.
     };
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
     /**
      * This method sets the key.
      *
-     * @param[in]  aKeyRef    Reference to the Key to use.
+     * @param[in]  aKey    Crypto Key used in AES operation
      *
      */
-    void SetKey(const uint32_t aKeyRef);
-#endif
+    void SetKey(const Key &aKey) { mEcb.SetKey(aKey); }
 
     /**
      * This method sets the key.
@@ -95,10 +95,10 @@ public:
     /**
      * This method sets the key.
      *
-     * @param[in]  aMacKey        A MAC key.
+     * @param[in]  aMacKey        Key Material for AES operation.
      *
      */
-    void SetKey(const Mac::Key &aMacKey);
+    void SetKey(const Mac::KeyMaterial &aMacKey);
 
     /**
      * This method initializes the AES CCM computation.

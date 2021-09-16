@@ -336,6 +336,8 @@ private:
         kMaxLineLength    = OPENTHREAD_CONFIG_CLI_MAX_LINE_LENGTH,
     };
 
+    static constexpr uint32_t kNetworkDiagnosticTimeoutMsecs = 5000;
+
     struct Command
     {
         const char *mName;
@@ -432,6 +434,7 @@ private:
         OutputTableSeperator(kTableNumColumns, aWidths);
     }
 
+    void OutputPrompt(void);
 #if OPENTHREAD_CONFIG_PING_SENDER_ENABLE
     otError ParsePingInterval(const Arg &aArg, uint32_t &aInterval);
 #endif
@@ -597,6 +600,9 @@ private:
     otError ProcessNetworkIdTimeout(Arg aArgs[]);
 #endif
     otError ProcessNetworkKey(Arg aArgs[]);
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    otError ProcessNetworkKeyRef(Arg aArgs[]);
+#endif
     otError ProcessNetworkName(Arg aArgs[]);
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     otError ProcessNetworkTime(Arg aArgs[]);
@@ -620,6 +626,9 @@ private:
 #if OPENTHREAD_FTD
     otError ProcessPreferRouterId(Arg aArgs[]);
     otError ProcessPskc(Arg aArgs[]);
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    otError ProcessPskcRef(Arg aArgs[]);
+#endif
 #endif
     otError ProcessRcp(Arg aArgs[]);
     otError ProcessRegion(Arg aArgs[]);
@@ -658,6 +667,9 @@ private:
 #endif
     otError ProcessUdp(Arg aArgs[]);
     otError ProcessUnsecurePort(Arg aArgs[]);
+#if OPENTHREAD_CONFIG_UPTIME_ENABLE
+    otError ProcessUptime(Arg aArgs[]);
+#endif
     otError ProcessVersion(Arg aArgs[]);
 #if OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
     otError ProcessMacFilter(Arg aArgs[]);
@@ -766,6 +778,10 @@ private:
     bool IsLogging(void) const { return mIsLogging; }
     void SetIsLogging(bool aIsLogging) { mIsLogging = aIsLogging; }
 #endif
+    void SetCommandTimeout(uint32_t aTimeoutMilli);
+
+    static void HandleTimer(Timer &aTimer);
+    void        HandleTimer(void);
 
     static constexpr Command sCommands[] = {
 #if OPENTHREAD_CONFIG_BORDER_AGENT_ENABLE
@@ -880,6 +896,9 @@ private:
         {"networkidtimeout", &Interpreter::ProcessNetworkIdTimeout},
 #endif
         {"networkkey", &Interpreter::ProcessNetworkKey},
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+        {"networkkeyref", &Interpreter::ProcessNetworkKeyRef},
+#endif
         {"networkname", &Interpreter::ProcessNetworkName},
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
         {"networktime", &Interpreter::ProcessNetworkTime},
@@ -903,6 +922,9 @@ private:
         {"promiscuous", &Interpreter::ProcessPromiscuous},
 #if OPENTHREAD_FTD
         {"pskc", &Interpreter::ProcessPskc},
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+        {"pskcref", &Interpreter::ProcessPskcRef},
+#endif
 #endif
         {"rcp", &Interpreter::ProcessRcp},
         {"region", &Interpreter::ProcessRegion},
@@ -943,6 +965,9 @@ private:
         {"txpower", &Interpreter::ProcessTxPower},
         {"udp", &Interpreter::ProcessUdp},
         {"unsecureport", &Interpreter::ProcessUnsecurePort},
+#if OPENTHREAD_CONFIG_UPTIME_ENABLE
+        {"uptime", &Interpreter::ProcessUptime},
+#endif
         {"version", &Interpreter::ProcessVersion},
     };
 
@@ -954,6 +979,7 @@ private:
     const otCliCommand *mUserCommands;
     uint8_t             mUserCommandsLength;
     void *              mUserCommandsContext;
+    bool                mCommandIsPending;
 #if OPENTHREAD_CONFIG_SNTP_CLIENT_ENABLE
     bool mSntpQueryingInProgress;
 #endif
@@ -965,6 +991,8 @@ private:
 #if OPENTHREAD_CONFIG_TCP_ENABLE && OPENTHREAD_CONFIG_CLI_TCP_ENABLE
     TcpExample mTcp;
 #endif
+
+    TimerMilliContext mTimer;
 
 #if OPENTHREAD_CONFIG_COAP_API_ENABLE
     Coap mCoap;
@@ -998,6 +1026,9 @@ private:
     char     mOutputString[OPENTHREAD_CONFIG_CLI_LOG_INPUT_OUTPUT_LOG_STRING_SIZE];
     uint16_t mOutputLength;
     bool     mIsLogging;
+#endif
+#if OPENTHREAD_CONFIG_PING_SENDER_ENABLE
+    bool mPingIsAsync;
 #endif
 };
 
