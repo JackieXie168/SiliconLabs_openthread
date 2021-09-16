@@ -83,7 +83,7 @@ private:
                                  void *                    arg);
     static void HandleCPCEndpointError(uint8_t endpoint_id, void *arg);
     void HandleEndpointError(void);
-  
+
     uint8_t mCpcTxBuffer[kCpcTxBufferSize];
     bool mIsReady;
     bool mIsWriting;

@@ -201,7 +201,6 @@ void NcpCPC::HandleEndpointError(void)
     OpenEndpoint();
 }
 
-
 extern "C" void efr32CpcProcess(void)
 {
     NcpCPC *ncpCPC = static_cast<NcpCPC *>(NcpBase::GetNcpInstance());
