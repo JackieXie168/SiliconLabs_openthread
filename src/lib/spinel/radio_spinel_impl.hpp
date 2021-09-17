@@ -2313,10 +2313,19 @@ void RadioSpinel<InterfaceType, ProcessContextType>::RecoverFromRcpFailure(void)
     mIsReady      = false;
     mIsTimeSynced = false;
 
-    if (mResetRadioOnStartup)
+    if (skipReset)
     {
-        SuccessOrDie(SendReset());
-        SuccessOrDie(mSpinelInterface.ResetConnection());
+        mIsReady = true;
+    }
+    else
+    {
+        if (mResetRadioOnStartup)
+        {
+            SuccessOrDie(SendReset());
+            SuccessOrDie(mSpinelInterface.ResetConnection());
+        }
+
+        SuccessOrDie(WaitResponse());
     }
 
     SuccessOrDie(Set(SPINEL_PROP_PHY_ENABLED, SPINEL_DATATYPE_BOOL_S, true));
