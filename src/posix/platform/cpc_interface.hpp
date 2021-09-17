@@ -142,6 +142,13 @@ public:
      */
     void OnRcpReset(void);
 
+    /**
+      * This method is called when RCP is reset to recreate the connection with it.
+      * Intentionally empty.
+      *
+      */
+    otError ResetConnection(void) { return OT_ERROR_NONE; }
+
 private:
     /**
      * This method instructs `CpcInterface` to read data from radio over the socket.
