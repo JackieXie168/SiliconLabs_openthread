@@ -39,6 +39,7 @@
 #include "common/locator_getters.hpp"
 #include "common/timer.hpp"
 #include "crypto/hkdf_sha256.hpp"
+#include "crypto/storage.hpp"
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
 
@@ -179,19 +180,24 @@ KeyManager::KeyManager(Instance &aInstance)
     , mKekFrameCounter(0)
     , mIsPskcSet(false)
 {
-    Error error = mNetworkKey.GenerateRandom();
+    IgnoreError(otPlatCryptoInit());
 
-    OT_ASSERT(error == kErrorNone);
-    OT_UNUSED_VARIABLE(error);
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    {
+        NetworkKey networkKey;
+
+        mNetworkKeyRef = Crypto::Storage::kInvalidKeyRef;
+        mPskcRef       = Crypto::Storage::kInvalidKeyRef;
+
+        IgnoreError(networkKey.GenerateRandom());
+        StoreNetworkKey(networkKey, /* aOverWriteExisting */ false);
+    }
+#else
+    IgnoreError(mNetworkKey.GenerateRandom());
+    mPskc.Clear();
+#endif
 
     mMacFrameCounters.Reset();
-    mPskc.Clear();
-
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    otPlatPsaInit();
-    mNetworkKeyRef = 0;
-    StoreNetworkKey(false);
-#endif
 }
 
 void KeyManager::Start(void)
@@ -205,98 +211,30 @@ void KeyManager::Stop(void)
     mKeyRotationTimer.Stop();
 }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-
-#if OPENTHREAD_MTD || OPENTHREAD_FTD
 void KeyManager::SetPskc(const Pskc &aPskc)
 {
-    Error error = kErrorNone;
-
-    mPskcRef = kPkscPsaItsOffset;
-
-    CheckAndDestroyStoredKey(mPskcRef);
-    IgnoreError(Get<Notifier>().Update(mPskc, aPskc, kEventPskcChanged));
-
-    error = otPlatPsaImportKey(&mPskcRef, PSA_KEY_TYPE_RAW_DATA, PSA_ALG_VENDOR_FLAG, PSA_KEY_USAGE_EXPORT,
-                               PSA_KEY_LIFETIME_PERSISTENT, mPskc.m8, OT_PSKC_MAX_SIZE);
-
-    OT_ASSERT(error == kErrorNone);
-
-    mPskc.Clear();
-    mIsPskcSet = true;
-}
-#endif // OPENTHREAD_MTD || OPENTHREAD_FTD
-
-Pskc &KeyManager::GetPskc(void)
-{
-    size_t aKeySize = 0;
-
-    Error error = otPlatPsaExportKey(mPskcRef, mPskc.m8, OT_PSKC_MAX_SIZE, &aKeySize);
-
-    if (error != kErrorNone)
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    if (Crypto::Storage::IsKeyRefValid(mPskcRef))
     {
-        mPskc.Clear();
+        Pskc pskc;
+
+        GetPskc(pskc);
+        VerifyOrExit(aPskc != pskc, Get<Notifier>().SignalIfFirst(kEventPskcChanged));
     }
 
-    return mPskc;
-}
-
+    StorePskc(aPskc);
+    Get<Notifier>().Signal(kEventPskcChanged);
 #else
-
-#if OPENTHREAD_MTD || OPENTHREAD_FTD
-void KeyManager::SetPskc(const Pskc &aPskc)
-{
-    IgnoreError(Get<Notifier>().Update(mPskc, aPskc, kEventPskcChanged));
-    mIsPskcSet = true;
-}
-#endif // OPENTHREAD_MTD || OPENTHREAD_FTD
+    SuccessOrExit(Get<Notifier>().Update(mPskc, aPskc, kEventPskcChanged));
 #endif
-
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-Error KeyManager::StoreNetworkKey(bool aOverWriteExisting)
-{
-    Error error = kErrorNone;
-
-    mNetworkKeyRef = kNetworkKeyPsaItsOffset;
-
-    if (!aOverWriteExisting)
-    {
-        psa_key_attributes_t mKeyAttributes = PSA_KEY_ATTRIBUTES_INIT;
-
-        error = otPlatPsaGetKeyAttributes(mNetworkKeyRef, &mKeyAttributes);
-        // We will be able to retrieve the key_attributes only if there is
-        // already a master key stored in ITS. If stored, and we are not
-        // overwriting the existing key, return without doing anything.
-        SuccessOrExit(error != OT_ERROR_NONE);
-    }
-
-    CheckAndDestroyStoredKey(mNetworkKeyRef);
-
-    error = otPlatPsaImportKey(&mNetworkKeyRef, PSA_KEY_TYPE_HMAC, PSA_ALG_HMAC(PSA_ALG_SHA_256),
-                               PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_EXPORT, PSA_KEY_LIFETIME_PERSISTENT,
-                               mNetworkKey.m8, OT_NETWORK_KEY_SIZE);
-
-    OT_ASSERT(error == kErrorNone);
-
-    mNetworkKey.Clear();
 
 exit:
-    return error;
+    mIsPskcSet = true;
 }
-#endif
 
-Error KeyManager::SetNetworkKey(const NetworkKey &aKey)
+void KeyManager::ResetFrameCounters(void)
 {
-    Error   error = kErrorNone;
     Router *parent;
-
-    SuccessOrExit(Get<Notifier>().Update(mNetworkKey, aKey, kEventNetworkKeyChanged));
-    Get<Notifier>().Signal(kEventThreadKeySeqCounterChanged);
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    StoreNetworkKey(true);
-#endif
-    mKeySequence = 0;
-    UpdateKeyMaterial();
 
     // reset parent frame counters
     parent = &Get<Mle::MleRouter>().GetParent();
@@ -324,151 +262,112 @@ Error KeyManager::SetNetworkKey(const NetworkKey &aKey)
         child.SetMleFrameCounter(0);
     }
 #endif
-
-exit:
-    return error;
 }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-NetworkKey &KeyManager::GetNetworkKey(void)
+void KeyManager::SetNetworkKey(const NetworkKey &aNetworkKey)
 {
-    size_t aKeySize = 0;
-
-    Error error = otPlatPsaExportKey(mNetworkKeyRef, mNetworkKey.m8, OT_NETWORK_KEY_SIZE, &aKeySize);
-
-    if (error != kErrorNone)
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    if (Crypto::Storage::IsKeyRefValid(mNetworkKeyRef))
     {
-        mNetworkKey.Clear();
+        NetworkKey networkKey;
+
+        GetNetworkKey(networkKey);
+        VerifyOrExit(networkKey != aNetworkKey, Get<Notifier>().SignalIfFirst(kEventNetworkKeyChanged));
     }
 
-    return mNetworkKey;
-}
-
-void KeyManager::ComputeKeys(uint32_t aKeySequence, HashKeys &aHashKeys)
-{
-    Crypto::HmacSha256 hmac;
-    uint8_t            keySequenceBytes[sizeof(uint32_t)];
-
-    hmac.Start(mNetworkKeyRef);
-
-    Encoding::BigEndian::WriteUint32(aKeySequence, keySequenceBytes);
-    hmac.Update(keySequenceBytes);
-    hmac.Update(kThreadString);
-
-    hmac.Finish(aHashKeys.mHash);
-}
+    StoreNetworkKey(aNetworkKey, /* aOverWriteExisting */ true);
+    Get<Notifier>().Signal(kEventNetworkKeyChanged);
 #else
-void KeyManager::ComputeKeys(uint32_t aKeySequence, HashKeys &aHashKeys)
-{
-    Crypto::HmacSha256 hmac;
-    uint8_t            keySequenceBytes[sizeof(uint32_t)];
-
-    hmac.Start(mNetworkKey.m8, sizeof(mNetworkKey.m8));
-
-    Encoding::BigEndian::WriteUint32(aKeySequence, keySequenceBytes);
-    hmac.Update(keySequenceBytes);
-    hmac.Update(kThreadString);
-
-    hmac.Finish(aHashKeys.mHash);
-}
+    SuccessOrExit(Get<Notifier>().Update(mNetworkKey, aNetworkKey, kEventNetworkKeyChanged));
 #endif
 
+    Get<Notifier>().Signal(kEventThreadKeySeqCounterChanged);
+
+    mKeySequence = 0;
+    UpdateKeyMaterial();
+    ResetFrameCounters();
+
+exit:
+    return;
+}
+
+void KeyManager::ComputeKeys(uint32_t aKeySequence, HashKeys &aHashKeys)
+{
+    Crypto::HmacSha256 hmac;
+    uint8_t            keySequenceBytes[sizeof(uint32_t)];
+    Crypto::Key        cryptoKey;
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    cryptoKey.SetAsKeyRef(mNetworkKeyRef);
+#else
+    cryptoKey.Set(mNetworkKey.m8, NetworkKey::kSize);
+#endif
+
+    hmac.Start(cryptoKey);
+
+    Encoding::BigEndian::WriteUint32(aKeySequence, keySequenceBytes);
+    hmac.Update(keySequenceBytes);
+    hmac.Update(kThreadString);
+
+    hmac.Finish(aHashKeys.mHash);
+}
+
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
-void KeyManager::ComputeTrelKey(uint32_t aKeySequence, Mac::Key &aTrelKey)
+void KeyManager::ComputeTrelKey(uint32_t aKeySequence, Mac::Key &aKey)
 {
     Crypto::HkdfSha256 hkdf;
     uint8_t            salt[sizeof(uint32_t) + sizeof(kHkdfExtractSaltString)];
+    Crypto::Key        cryptoKey;
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    cryptoKey.SetAsKeyRef(mNetworkKeyRef);
+#else
+    cryptoKey.Set(mNetworkKey.m8, NetworkKey::kSize);
+#endif
 
     Encoding::BigEndian::WriteUint32(aKeySequence, salt);
     memcpy(salt + sizeof(uint32_t), kHkdfExtractSaltString, sizeof(kHkdfExtractSaltString));
 
-    hkdf.Extract(salt, sizeof(salt), mNetworkKey.m8, sizeof(NetworkKey));
-    hkdf.Expand(kTrelInfoString, sizeof(kTrelInfoString), aTrelKey.m8, sizeof(Mac::Key));
+    hkdf.Extract(salt, sizeof(salt), cryptoKey);
+    hkdf.Expand(kTrelInfoString, sizeof(kTrelInfoString), aKey.m8, Mac::Key::kSize);
 }
 #endif
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
 void KeyManager::UpdateKeyMaterial(void)
 {
-    HashKeys    cur;
-    otMacKeyRef curMacKeyRef;
-    Error       error;
-#if OPENTHREAD_CONFIG_RADIO_LINK_IEEE_802_15_4_ENABLE
-    HashKeys    prev;
-    HashKeys    next;
-    otMacKeyRef prevMacKeyRef;
-    otMacKeyRef nextMacKeyRef;
-#endif
+    HashKeys hashKeys;
 
-    ComputeKeys(mKeySequence, cur);
+    ComputeKeys(mKeySequence, hashKeys);
 
-    error = otPlatPsaImportKey(&curMacKeyRef, PSA_KEY_TYPE_AES, PSA_ALG_ECB_NO_PADDING,
-                               (PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT), PSA_KEY_LIFETIME_VOLATILE,
-                               cur.mKeys.mMacKey.GetKey(), cur.mKeys.mMacKey.kSize);
-    OT_ASSERT(error == kErrorNone);
-
-    CheckAndDestroyStoredKey(mMleKeyRef);
-
-    error = otPlatPsaImportKey(&mMleKeyRef, PSA_KEY_TYPE_AES, PSA_ALG_ECB_NO_PADDING,
-                               (PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT), PSA_KEY_LIFETIME_VOLATILE,
-                               cur.mKeys.mMleKey.m8, cur.mKeys.mMleKey.kSize);
-    OT_ASSERT(error == kErrorNone);
+    mMleKey.SetFrom(hashKeys.GetMleKey());
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_IEEE_802_15_4_ENABLE
-    ComputeKeys(mKeySequence - 1, prev);
-    ComputeKeys(mKeySequence + 1, next);
+    {
+        Mac::KeyMaterial curKey;
+        Mac::KeyMaterial prevKey;
+        Mac::KeyMaterial nextKey;
 
-    error = otPlatPsaImportKey(&prevMacKeyRef, PSA_KEY_TYPE_AES, PSA_ALG_ECB_NO_PADDING,
-                               (PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT), PSA_KEY_LIFETIME_VOLATILE,
-                               prev.mKeys.mMacKey.m8, prev.mKeys.mMacKey.kSize);
-    OT_ASSERT(error == kErrorNone);
+        curKey.SetFrom(hashKeys.GetMacKey());
 
-    error = otPlatPsaImportKey(&nextMacKeyRef, PSA_KEY_TYPE_AES, PSA_ALG_ECB_NO_PADDING,
-                               (PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT), PSA_KEY_LIFETIME_VOLATILE,
-                               next.mKeys.mMacKey.m8, next.mKeys.mMacKey.kSize);
-    OT_ASSERT(error == kErrorNone);
+        ComputeKeys(mKeySequence - 1, hashKeys);
+        prevKey.SetFrom(hashKeys.GetMacKey());
 
-    cur.mKeys.mMacKey.Clear();
-    cur.mKeys.mMleKey.Clear();
-    prev.mKeys.mMacKey.Clear();
-    prev.mKeys.mMacKey.Clear();
-    next.mKeys.mMacKey.Clear();
-    next.mKeys.mMacKey.Clear();
+        ComputeKeys(mKeySequence + 1, hashKeys);
+        nextKey.SetFrom(hashKeys.GetMacKey());
 
-    Get<Mac::SubMac>().SetMacKey(Mac::Frame::kKeyIdMode1, (mKeySequence & 0x7f) + 1, prevMacKeyRef, curMacKeyRef,
-                                 nextMacKeyRef);
-
+        Get<Mac::SubMac>().SetMacKey(Mac::Frame::kKeyIdMode1, (mKeySequence & 0x7f) + 1, prevKey, curKey, nextKey);
+    }
 #endif
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
-    ComputeTrelKey(mKeySequence, mTrelKey);
+    {
+        Mac::Key key;
+
+        ComputeTrelKey(mKeySequence, key);
+        mTrelKey.SetFrom(key);
+    }
 #endif
 }
-#else
-void KeyManager::UpdateKeyMaterial(void)
-{
-    HashKeys cur;
-#if OPENTHREAD_CONFIG_RADIO_LINK_IEEE_802_15_4_ENABLE
-    HashKeys prev;
-    HashKeys next;
-#endif
-
-    ComputeKeys(mKeySequence, cur);
-    mMleKey = cur.mKeys.mMleKey;
-
-#if OPENTHREAD_CONFIG_RADIO_LINK_IEEE_802_15_4_ENABLE
-    ComputeKeys(mKeySequence - 1, prev);
-    ComputeKeys(mKeySequence + 1, next);
-
-    Get<Mac::SubMac>().SetMacKey(Mac::Frame::kKeyIdMode1, (mKeySequence & 0x7f) + 1, prev.mKeys.mMacKey,
-                                 cur.mKeys.mMacKey, next.mKeys.mMacKey);
-#endif
-
-#if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
-    ComputeTrelKey(mKeySequence, mTrelKey);
-#endif
-}
-#endif
 
 void KeyManager::SetCurrentKeySequence(uint32_t aKeySequence)
 {
@@ -498,39 +397,23 @@ exit:
     return;
 }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-KeyRef KeyManager::GetTemporaryMleKeyRef(uint32_t aKeySequence)
+const Mle::KeyMaterial &KeyManager::GetTemporaryMleKey(uint32_t aKeySequence)
 {
     HashKeys hashKeys;
 
     ComputeKeys(aKeySequence, hashKeys);
-
-    CheckAndDestroyStoredKey(mTemporaryMleKeyRef);
-    mTemporaryMleKeyRef = 0;
-
-    Error error = otPlatPsaImportKey(&mTemporaryMleKeyRef, PSA_KEY_TYPE_AES, PSA_ALG_ECB_NO_PADDING,
-                                     (PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT), PSA_KEY_LIFETIME_VOLATILE,
-                                     hashKeys.mKeys.mMleKey.m8, hashKeys.mKeys.mMleKey.kSize);
-    OT_ASSERT(error == kErrorNone);
-
-    return mTemporaryMleKeyRef;
-}
-#else
-const Mle::Key &KeyManager::GetTemporaryMleKey(uint32_t aKeySequence)
-{
-    HashKeys hashKeys;
-
-    ComputeKeys(aKeySequence, hashKeys);
-    mTemporaryMleKey = hashKeys.mKeys.mMleKey;
+    mTemporaryMleKey.SetFrom(hashKeys.GetMleKey());
 
     return mTemporaryMleKey;
 }
-#endif
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
-const Mac::Key &KeyManager::GetTemporaryTrelMacKey(uint32_t aKeySequence)
+const Mac::KeyMaterial &KeyManager::GetTemporaryTrelMacKey(uint32_t aKeySequence)
 {
-    ComputeTrelKey(aKeySequence, mTemporaryTrelKey);
+    Mac::Key key;
+
+    ComputeTrelKey(aKeySequence, key);
+    mTemporaryTrelKey.SetFrom(key);
 
     return mTemporaryTrelKey;
 }
@@ -583,69 +466,11 @@ void KeyManager::IncrementMleFrameCounter(void)
     }
 }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-
-void KeyManager::CheckAndDestroyStoredKey(psa_key_id_t aKeyRef)
-{
-    if (aKeyRef != 0)
-    {
-        otPlatPsaDestroyKey(aKeyRef);
-    }
-}
-
-Error KeyManager::ImportKek(const uint8_t *aKey, uint8_t aKeyLen)
-{
-    Error           error     = kErrorNone;
-    psa_key_usage_t mKeyUsage = (PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
-
-    CheckAndDestroyStoredKey(mKekRef);
-
-    error = otPlatPsaImportKey(&mKekRef, PSA_KEY_TYPE_AES, PSA_ALG_ECB_NO_PADDING, mKeyUsage, PSA_KEY_LIFETIME_VOLATILE,
-                               aKey, aKeyLen);
-
-    return error;
-}
-
 void KeyManager::SetKek(const Kek &aKek)
 {
-    Error error = kErrorNone;
-
-    error            = ImportKek(aKek.m8, aKek.kSize);
-    mKekFrameCounter = 0;
-    OT_ASSERT(error == kErrorNone);
-}
-
-void KeyManager::SetKek(const uint8_t *aKek)
-{
-    Error error;
-
-    error            = ImportKek(aKek, 16);
-    mKekFrameCounter = 0;
-    OT_ASSERT(error == kErrorNone);
-}
-
-const Kek &KeyManager::GetKek(void)
-{
-    size_t aKeySize = 0;
-    Error  error    = otPlatPsaExportKey(mKekRef, mKek.m8, mKek.kSize, &aKeySize);
-    OT_ASSERT(error == kErrorNone);
-
-    return mKek;
-}
-
-#else
-void KeyManager::SetKek(const Kek &aKek)
-{
-    mKek             = aKek;
+    mKek.SetFrom(aKek, /* aIsExportable */ true);
     mKekFrameCounter = 0;
 }
-
-void KeyManager::SetKek(const uint8_t *aKek)
-{
-    memcpy(mKek.m8, aKek, sizeof(mKek));
-    mKekFrameCounter = 0;
-}
-#endif
 
 void KeyManager::SetSecurityPolicy(const SecurityPolicy &aSecurityPolicy)
 {
@@ -683,5 +508,138 @@ void KeyManager::HandleKeyRotationTimer(void)
         SetCurrentKeySequence(mKeySequence + 1);
     }
 }
+
+void KeyManager::GetNetworkKey(NetworkKey &aNetworkKey) const
+{
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    if (Crypto::Storage::IsKeyRefValid(mNetworkKeyRef))
+    {
+        Error  error = kErrorNone;
+        size_t keyLen;
+
+        error = Crypto::Storage::ExportKey(mNetworkKeyRef, aNetworkKey.m8, NetworkKey::kSize, keyLen);
+        OT_ASSERT(error == kErrorNone);
+        OT_ASSERT(keyLen == NetworkKey::kSize);
+        OT_UNUSED_VARIABLE(error);
+    }
+    else
+    {
+        aNetworkKey.Clear();
+    }
+#else
+    aNetworkKey = mNetworkKey;
+#endif
+}
+
+void KeyManager::GetPskc(Pskc &aPskc) const
+{
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+    if (Crypto::Storage::IsKeyRefValid(mPskcRef))
+    {
+        Error  error = kErrorNone;
+        size_t keyLen;
+
+        error = Crypto::Storage::ExportKey(mPskcRef, aPskc.m8, Pskc::kSize, keyLen);
+        OT_ASSERT(error == kErrorNone);
+        OT_ASSERT(keyLen == Pskc::kSize);
+        OT_UNUSED_VARIABLE(error);
+    }
+    else
+    {
+        aPskc.Clear();
+    }
+#else
+    aPskc = mPskc;
+#endif
+}
+
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+
+void KeyManager::StoreNetworkKey(const NetworkKey &aNetworkKey, bool aOverWriteExisting)
+{
+    Error         error;
+    NetworkKeyRef keyRef;
+
+    keyRef = kNetworkKeyPsaItsOffset;
+
+    if (!aOverWriteExisting)
+    {
+        // Check if there is already a network key stored in ITS. If
+        // stored, and we are not overwriting the existing key,
+        // return without doing anything.
+        if (Crypto::Storage::HasKey(keyRef))
+        {
+            ExitNow();
+        }
+    }
+
+    Crypto::Storage::DestroyKey(keyRef);
+
+    error = Crypto::Storage::ImportKey(keyRef, Crypto::Storage::kKeyTypeHmac, Crypto::Storage::kKeyAlgorithmHmacSha256,
+                                       Crypto::Storage::kUsageSignHash | Crypto::Storage::kUsageExport,
+                                       Crypto::Storage::kTypePersistent, aNetworkKey.m8, NetworkKey::kSize);
+    OT_ASSERT(error == kErrorNone);
+
+exit:
+    if (mNetworkKeyRef != keyRef)
+    {
+        Crypto::Storage::DestroyKey(mNetworkKeyRef);
+    }
+
+    mNetworkKeyRef = keyRef;
+}
+
+void KeyManager::StorePskc(const Pskc &aPskc)
+{
+    PskcRef keyRef = kPskcPsaItsOffset;
+    Error   error  = kErrorNone;
+
+    Crypto::Storage::DestroyKey(keyRef);
+
+    error = Crypto::Storage::ImportKey(keyRef, Crypto::Storage::kKeyTypeRaw, Crypto::Storage::kKeyAlgorithmVendor,
+                                       Crypto::Storage::kUsageExport, Crypto::Storage::kTypePersistent, aPskc.m8,
+                                       Pskc::kSize);
+    OT_ASSERT(error == kErrorNone);
+    OT_UNUSED_VARIABLE(error);
+
+    if (mPskcRef != keyRef)
+    {
+        Crypto::Storage::DestroyKey(mPskcRef);
+    }
+
+    mPskcRef = keyRef;
+}
+
+void KeyManager::SetPskcRef(PskcRef aKeyRef)
+{
+    VerifyOrExit(mPskcRef != aKeyRef, Get<Notifier>().SignalIfFirst(kEventPskcChanged));
+
+    Crypto::Storage::DestroyKey(mPskcRef);
+
+    mPskcRef = aKeyRef;
+    Get<Notifier>().Signal(kEventPskcChanged);
+
+exit:
+    mIsPskcSet = true;
+}
+
+void KeyManager::SetNetworkKeyRef(otNetworkKeyRef aKeyRef)
+{
+    VerifyOrExit(mNetworkKeyRef != aKeyRef, Get<Notifier>().SignalIfFirst(kEventNetworkKeyChanged));
+
+    Crypto::Storage::DestroyKey(mNetworkKeyRef);
+
+    mNetworkKeyRef = aKeyRef;
+    Get<Notifier>().Signal(kEventNetworkKeyChanged);
+    Get<Notifier>().Signal(kEventThreadKeySeqCounterChanged);
+    mKeySequence = 0;
+    UpdateKeyMaterial();
+    ResetFrameCounters();
+
+exit:
+    return;
+}
+
+#endif // OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
 
 } // namespace ot

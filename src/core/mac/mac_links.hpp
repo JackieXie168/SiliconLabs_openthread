@@ -625,7 +625,6 @@ public:
      */
     const SubMac &GetSubMac(void) const { return mSubMac; }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
     /**
      * This method returns a reference to the current MAC key (for Key Mode 1) for a given Frame.
      *
@@ -634,7 +633,7 @@ public:
      * @returns A reference to the current MAC key.
      *
      */
-    otMacKeyRef GetCurrentMacKeyRef(const Frame &aFrame) const;
+    const KeyMaterial *GetCurrentMacKey(const Frame &aFrame) const;
 
     /**
      * This method returns a reference to the temporary MAC key (for Key Mode 1) for a given Frame based on a given
@@ -646,30 +645,7 @@ public:
      * @returns A reference to the temporary MAC key.
      *
      */
-    otMacKeyRef GetTemporaryMacKeyRef(const Frame &aFrame, uint32_t aKeySequence) const;
-#else
-    /**
-     * This method returns a reference to the current MAC key (for Key Mode 1) for a given Frame.
-     *
-     * @param[in] aFrame    The frame for which to get the MAC key.
-     *
-     * @returns A reference to the current MAC key.
-     *
-     */
-    const Key *GetCurrentMacKey(const Frame &aFrame) const;
-
-    /**
-     * This method returns a reference to the temporary MAC key (for Key Mode 1) for a given Frame based on a given
-     * Key Sequence.
-     *
-     * @param[in] aFrame        The frame for which to get the MAC key.
-     * @param[in] aKeySequence  The Key Sequence number (MUST be one off (+1 or -1) from current key sequence number).
-     *
-     * @returns A reference to the temporary MAC key.
-     *
-     */
-    const Key *GetTemporaryMacKey(const Frame &aFrame, uint32_t aKeySequence) const;
-#endif
+    const KeyMaterial *GetTemporaryMacKey(const Frame &aFrame, uint32_t aKeySequence) const;
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     /**

@@ -26,69 +26,59 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file
- * @brief
- *   This file defines the radio interface for OpenThread.
- *   Applicable only when OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE feature is enabled.
- *
- */
+#include "platform-simulation.h"
 
-#ifndef OPENTHREAD_PLATFORM_RADIO_PSA_H_
-#define OPENTHREAD_PLATFORM_RADIO_PSA_H_
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <stdint.h>
+#include <openthread/config.h>
+#include <openthread/platform/crypto.h>
 
-#include <openthread/error.h>
-#include <openthread/instance.h>
-#include <openthread/platform/psa.h>
+#if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// crypto key storage stubs
 
-/**
- * @addtogroup plat-radio
- *
- * @brief
- *   This module includes the platform abstraction for radio communication.
- *
- * @{
- *
- */
+otError otPlatCryptoImportKey(otCryptoKeyRef *     aKeyRef,
+                              otCryptoKeyType      aKeyType,
+                              otCryptoKeyAlgorithm aKeyAlgorithm,
+                              int                  aKeyUsage,
+                              otCryptoKeyStorage   aKeyPersistence,
+                              const uint8_t *      aKey,
+                              size_t               aKeyLen)
+{
+    OT_UNUSED_VARIABLE(aKeyRef);
+    OT_UNUSED_VARIABLE(aKeyType);
+    OT_UNUSED_VARIABLE(aKeyAlgorithm);
+    OT_UNUSED_VARIABLE(aKeyUsage);
+    OT_UNUSED_VARIABLE(aKeyPersistence);
+    OT_UNUSED_VARIABLE(aKey);
+    OT_UNUSED_VARIABLE(aKeyLen);
 
-/**
- * Update MAC keys and key index
- *
- * This function is used when radio provides OT_RADIO_CAPS_TRANSMIT_SEC capability.
- *
- * @param[in]   aInstance    A pointer to an OpenThread instance.
- * @param[in]   aKeyIdMode   The key ID mode.
- * @param[in]   aKeyId       Current MAC key index.
- * @param[in]   aPrevKeyRef  A Reference to the previous MAC key.
- * @param[in]   aCurrKeyRef  A Reference to the current MAC key.
- * @param[in]   aNextKeyRef  A Reference to the next MAC key.
- *
- */
-void otPlatRadioSetMacKeyRef(otInstance *aInstance,
-                            uint8_t     aKeyIdMode,
-                            uint8_t     aKeyId,
-                            otMacKeyRef aPrevKeyRef,
-                            otMacKeyRef aCurrKeyRef,
-                            otMacKeyRef aNextKeyRef);
+    return OT_ERROR_NOT_IMPLEMENTED;
+}
 
-/**
- * @}
- *
- */
+otError otPlatCryptoExportKey(otCryptoKeyRef aKeyRef, uint8_t *aBuffer, size_t aBufferLen, size_t *aKeyLen)
+{
+    OT_UNUSED_VARIABLE(aKeyRef);
+    OT_UNUSED_VARIABLE(aBuffer);
+    OT_UNUSED_VARIABLE(aBufferLen);
+    OT_UNUSED_VARIABLE(aKeyLen);
 
-/**
- * @}
- *
- */
+    return OT_ERROR_NOT_IMPLEMENTED;
+}
 
-#ifdef __cplusplus
-} // end of extern "C"
-#endif
+otError otPlatCryptoDestroyKey(otCryptoKeyRef aKeyRef)
+{
+    OT_UNUSED_VARIABLE(aKeyRef);
 
-#endif // OPENTHREAD_PLATFORM_RADIO_PSA_H_
+    return OT_ERROR_NOT_IMPLEMENTED;
+}
+
+bool otPlatCryptoHasKey(otCryptoKeyRef aKeyRef)
+{
+    OT_UNUSED_VARIABLE(aKeyRef);
+
+    return false;
+}
+
+#endif // OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE

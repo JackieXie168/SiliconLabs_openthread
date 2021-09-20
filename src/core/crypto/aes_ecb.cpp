@@ -32,44 +32,38 @@
  */
 
 #include "aes_ecb.hpp"
-#include <openthread/platform/psa.h>
+#include "common/debug.hpp"
+#include "common/error.hpp"
 
 namespace ot {
 namespace Crypto {
 
 AesEcb::AesEcb(void)
 {
-#if !OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    mbedtls_aes_init(&mContext);
-#endif
+    Error err = otPlatCryptoAesInit(&mContext, sizeof(mContext));
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-void AesEcb::SetKey(const uint32_t aKeyRef)
+void AesEcb::SetKey(const Key &aKey)
 {
-    mKeyRef = aKeyRef;
+    Error err = otPlatCryptoAesSetKey(&mContext, sizeof(mContext), &aKey);
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
-#else
-void AesEcb::SetKey(const uint8_t *aKey, uint16_t aKeyLength)
-{
-    mbedtls_aes_setkey_enc(&mContext, aKey, aKeyLength);
-}
-#endif
 
 void AesEcb::Encrypt(const uint8_t aInput[kBlockSize], uint8_t aOutput[kBlockSize])
 {
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    otPlatPsaEcbEncrypt(mKeyRef, aInput, aOutput);
-#else
-    mbedtls_aes_crypt_ecb(&mContext, MBEDTLS_AES_ENCRYPT, aInput, aOutput);
-#endif
+    Error err = otPlatCryptoAesEncrypt(&mContext, sizeof(mContext), aInput, aOutput);
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
 AesEcb::~AesEcb(void)
 {
-#if !OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    mbedtls_aes_free(&mContext);
-#endif
+    Error err = otPlatCryptoAesFree(&mContext, sizeof(mContext));
+    OT_ASSERT(err == kErrorNone);
+    OT_UNUSED_VARIABLE(err);
 }
 
 } // namespace Crypto

@@ -108,16 +108,6 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
- *
- * Define to 1 if you want to use PSA Crypto APIs.
- *
- */
-#ifndef OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-#define OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE 0
-#endif
-
-/**
  * @def OPENTHREAD_CONFIG_PLATFORM_RADIO_SPINEL_RX_FRAME_BUFFER_SIZE
  *
  * Specifies the rx frame buffer size used by `SpinelInterface` in RCP host (posix) code. This is applicable/used when
@@ -136,6 +126,26 @@
  */
 #ifndef OPENTHREAD_CONFIG_PLATFORM_RADIO_PROPRIETARY_SUPPORT
 #define OPENTHREAD_CONFIG_PLATFORM_RADIO_PROPRIETARY_SUPPORT 0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET
+ *
+ * Default NVM offset while using key refs. Platforms can override this definition based on implementation
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET
+#define OPENTHREAD_CONFIG_PSA_ITS_NVM_OFFSET 0x20000
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+ *
+ * Define to 1 if you want to enable key ref usage support as defined by platform.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
+#define OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE 0
 #endif
 
 #if OPENTHREAD_CONFIG_PLATFORM_RADIO_PROPRIETARY_SUPPORT

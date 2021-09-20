@@ -39,13 +39,14 @@
 #include <stdint.h>
 
 #include <mbedtls/sha256.h>
+#include <psa/crypto.h>
 
 #include <openthread/crypto.h>
+#include <openthread/platform/crypto.h>
 
 #include "common/clearable.hpp"
 #include "common/equatable.hpp"
 #include "common/type_traits.hpp"
-#include <openthread/platform/psa.h>
 
 namespace ot {
 
@@ -145,12 +146,13 @@ public:
     void Finish(Hash &aHash);
 
 private:
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    psa_hash_operation_t mOperation;
-#else
-    mbedtls_sha256_context mContext;
-#endif
+    union Sha256Context
+    {
+        psa_hash_operation_t   mOperation;
+        mbedtls_sha256_context mContext;
+    };
 
+    Sha256Context mContext;
 };
 
 /**

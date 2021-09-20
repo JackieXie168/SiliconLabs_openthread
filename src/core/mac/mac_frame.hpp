@@ -39,6 +39,7 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include "common/const_cast.hpp"
 #include "common/encoding.hpp"
 #include "mac/mac_types.hpp"
 
@@ -866,7 +867,7 @@ public:
      * @returns A pointer to the MAC Payload.
      *
      */
-    uint8_t *GetPayload(void) { return const_cast<uint8_t *>(const_cast<const Frame *>(this)->GetPayload()); }
+    uint8_t *GetPayload(void) { return AsNonConst(AsConst(this)->GetPayload()); }
 
     /**
      * This const method returns a pointer to the MAC Payload.
@@ -882,7 +883,7 @@ public:
      * @returns A pointer to the MAC Footer.
      *
      */
-    uint8_t *GetFooter(void) { return const_cast<uint8_t *>(const_cast<const Frame *>(this)->GetFooter()); }
+    uint8_t *GetFooter(void) { return AsNonConst(AsConst(this)->GetFooter()); }
 
     /**
      * This const method returns a pointer to the MAC Footer.
@@ -900,7 +901,7 @@ public:
      * @returns A pointer to the Time IE, nullptr if not found.
      *
      */
-    TimeIe *GetTimeIe(void) { return const_cast<TimeIe *>(const_cast<const Frame *>(this)->GetTimeIe()); }
+    TimeIe *GetTimeIe(void) { return AsNonConst(AsConst(this)->GetTimeIe()); }
 
     /**
      * This method returns a pointer to the vendor specific Time IE.
@@ -938,10 +939,7 @@ public:
      * @returns A pointer to the Header IE, nullptr if not found.
      *
      */
-    uint8_t *GetHeaderIe(uint8_t aIeId)
-    {
-        return const_cast<uint8_t *>(const_cast<const Frame *>(this)->GetHeaderIe(aIeId));
-    }
+    uint8_t *GetHeaderIe(uint8_t aIeId) { return AsNonConst(AsConst(this)->GetHeaderIe(aIeId)); }
 
     /**
      * This method returns a pointer to the Header IE.
@@ -963,10 +961,7 @@ public:
      * @returns A pointer to the Thread IE, nullptr if not found.
      *
      */
-    uint8_t *GetThreadIe(uint8_t aSubType)
-    {
-        return const_cast<uint8_t *>(const_cast<const Frame *>(this)->GetThreadIe(aSubType));
-    }
+    uint8_t *GetThreadIe(uint8_t aSubType) { return AsNonConst(AsConst(this)->GetThreadIe(aSubType)); }
 
     /**
      * This method returns a pointer to a specific Thread IE.
@@ -1160,20 +1155,6 @@ public:
      */
     const uint64_t &GetTimestamp(void) const { return mInfo.mRxInfo.mTimestamp; }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    /**
-     * This method performs AES CCM on the frame which is received.
-     *
-     * @param[in]  aExtAddress  A reference to the extended address, which will be used to generate nonce
-     *                          for AES CCM computation.
-     * @param[in]  aMacKeyRef   A reference to the MAC key to decrypt the received frame.
-     *
-     * @retval kErrorNone      Process of received frame AES CCM succeeded.
-     * @retval kErrorSecurity  Received frame MIC check failed.
-     *
-     */
-    Error ProcessReceiveAesCcm(const ExtAddress &aExtAddress, otMacKeyRef aMacKeyRef);
-#else
     /**
      * This method performs AES CCM on the frame which is received.
      *
@@ -1185,8 +1166,7 @@ public:
      * @retval kErrorSecurity  Received frame MIC check failed.
      *
      */
-    Error ProcessReceiveAesCcm(const ExtAddress &aExtAddress, const Key &aMacKey);
-#endif
+    Error ProcessReceiveAesCcm(const ExtAddress &aExtAddress, const KeyMaterial &aMacKey);
 
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     /**
@@ -1295,31 +1275,16 @@ public:
      */
     void SetCsmaCaEnabled(bool aCsmaCaEnabled) { mInfo.mTxInfo.mCsmaCaEnabled = aCsmaCaEnabled; }
 
-#if OPENTHREAD_CONFIG_PSA_CRYPTO_ENABLE
-    /**
-     * This method returns the reference to key used for frame encryption and authentication (AES CCM).
-     *
-     * @returns The reference to the key.
-     *
-     */
-     otMacKeyRef GetAesKeyRef(void) { return (mInfo.mTxInfo.mAesKeyRef); }
-
-    /**
-     * This method sets the reference to the key used for frame encryption and authentication (AES CCM).
-     *
-     * @param[in]  aAesKey  The pointer to the key.
-     *
-     */
-    void SetAesKey(otMacKeyRef aAesKeyRef) { mInfo.mTxInfo.mAesKeyRef = aAesKeyRef; }
-
-#else
     /**
      * This method returns the key used for frame encryption and authentication (AES CCM).
      *
      * @returns The pointer to the key.
      *
      */
-    const Mac::Key &GetAesKey(void) const { return *static_cast<const Mac::Key *>(mInfo.mTxInfo.mAesKey); }
+    const Mac::KeyMaterial &GetAesKey(void) const
+    {
+        return *static_cast<const Mac::KeyMaterial *>(mInfo.mTxInfo.mAesKey);
+    }
 
     /**
      * This method sets the key used for frame encryption and authentication (AES CCM).
@@ -1327,8 +1292,8 @@ public:
      * @param[in]  aAesKey  The pointer to the key.
      *
      */
-    void SetAesKey(const Mac::Key &aAesKey) { mInfo.mTxInfo.mAesKey = &aAesKey; }
-#endif
+    void SetAesKey(const Mac::KeyMaterial &aAesKey) { mInfo.mTxInfo.mAesKey = &aAesKey; }
+
     /**
      * This method copies the PSDU and all attributes (except for frame link type) from another frame.
      *
