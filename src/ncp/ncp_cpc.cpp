@@ -72,6 +72,12 @@ NcpCPC::NcpCPC(Instance *aInstance)
     , mIsReady(false)
     , mIsWriting(false)
     , mCpcSendTask(*aInstance, SendToCPC)
+    , mCpcEndpointErrorTask(*aInstance, HandleEndpointError)
+{
+    OpenEndpoint();
+}
+
+void NcpCPC::OpenEndpoint(void)
 {
     sl_status_t status = sli_cpc_open_service_endpoint(&mUserEp, 
                                                        SL_CPC_ENDPOINT_15_4, 
@@ -89,6 +95,12 @@ NcpCPC::NcpCPC(Instance *aInstance)
     status = sl_cpc_set_endpoint_option(&mUserEp,
                                         SL_CPC_ENDPOINT_ON_IFRAME_RECEIVE,
                                         reinterpret_cast<void *>(HandleCPCReceive));
+
+    OT_ASSERT(status == SL_STATUS_OK);
+
+    status = sl_cpc_set_endpoint_option(&mUserEp,
+                                        SL_CPC_ENDPOINT_ON_ERROR,
+                                        reinterpret_cast<void *>(HandleCPCEndpointError));
 
     OT_ASSERT(status == SL_STATUS_OK);    
 
@@ -174,6 +186,27 @@ void NcpCPC::HandleCPCReceive(sl_cpc_user_endpoint_id_t endpoint_id, void *arg)
     OT_UNUSED_VARIABLE(endpoint_id);
     OT_UNUSED_VARIABLE(arg);
     otSysEventSignalPending();  // wakeup ot task
+}
+
+void NcpCPC::HandleCPCEndpointError(uint8_t endpoint_id, void *arg)
+{
+    OT_UNUSED_VARIABLE(endpoint_id);
+    OT_UNUSED_VARIABLE(arg);
+
+    // Can't close and open endpoints in this context
+    static_cast<NcpCPC *>(GetNcpInstance())->mCpcEndpointErrorTask.Post();
+}
+
+void NcpCPC::HandleEndpointError(Tasklet &aTasklet)
+{
+    OT_UNUSED_VARIABLE(aTasklet);
+    static_cast<NcpCPC *>(GetNcpInstance())->HandleEndpointError();
+}
+
+void NcpCPC::HandleEndpointError(void)
+{
+    OT_ASSERT(sl_cpc_close_endpoint(&mUserEp) == SL_STATUS_OK);
+    OpenEndpoint();
 }
 
 extern "C" void efr32CpcProcess(void)
