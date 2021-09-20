@@ -72,6 +72,7 @@ NcpCPC::NcpCPC(Instance *aInstance)
     , mIsReady(false)
     , mIsWriting(false)
     , mCpcSendTask(*aInstance, SendToCPC)
+    , mCpcEndpointErrorTask(*aInstance, HandleEndpointError)
 {
     OpenEndpoint();
 }
@@ -191,7 +192,14 @@ void NcpCPC::HandleCPCEndpointError(uint8_t endpoint_id, void *arg)
 {
     OT_UNUSED_VARIABLE(endpoint_id);
     OT_UNUSED_VARIABLE(arg);
-    
+
+    // Can't close and open endpoints in this context
+    static_cast<NcpCPC *>(GetNcpInstance())->mCpcEndpointErrorTask.Post();
+}
+
+void NcpCPC::HandleEndpointError(Tasklet &aTasklet)
+{
+    OT_UNUSED_VARIABLE(aTasklet);
     static_cast<NcpCPC *>(GetNcpInstance())->HandleEndpointError();
 }
 

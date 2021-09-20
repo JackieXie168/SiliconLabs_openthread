@@ -82,6 +82,7 @@ private:
     static void HandleCPCReceive(sl_cpc_user_endpoint_id_t endpoint_id,
                                  void *                    arg);
     static void HandleCPCEndpointError(uint8_t endpoint_id, void *arg);
+    static void HandleEndpointError(Tasklet &aTasklet);
     void HandleEndpointError(void);
 
     uint8_t mCpcTxBuffer[kCpcTxBufferSize];
@@ -89,6 +90,7 @@ private:
     bool mIsWriting;
     sl_cpc_endpoint_handle_t mUserEp;
     Tasklet mCpcSendTask;
+    Tasklet mCpcEndpointErrorTask;
 };
 
 } // namespace Ncp
