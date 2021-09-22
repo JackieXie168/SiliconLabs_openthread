@@ -467,6 +467,8 @@ otError NcpBase::HandlePropertySet_SPINEL_PROP_STREAM_RAW(uint8_t aHeader)
 
         SuccessOrExit(error = DecodeStreamRawTxRequest(*frame));
 
+        frame->mIid = mCurCommandIID;
+
         // Pass frame to the radio layer. Note, this fails if we
         // haven't enabled raw stream or are already transmitting.
         SuccessOrExit(error = otLinkRawTransmit(mInstance, &NcpBase::LinkRawTransmitDone));
