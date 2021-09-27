@@ -81,6 +81,10 @@ namespace Mac {
 #error "OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE is required for OPENTHREAD_CONFIG_MAC_CSL_DEBUG_ENABLE."
 #endif
 
+#if OPENTHREAD_RADIO || OPENTHREAD_CONFIG_LINK_RAW_ENABLE
+class LinkRaw;
+#endif
+
 /**
  * This class implements the IEEE 802.15.4 MAC (sub-MAC).
  *
@@ -101,6 +105,7 @@ namespace Mac {
 class SubMac : public InstanceLocator, private NonCopyable
 {
     friend class Radio::Callbacks;
+    friend class LinkRaw;
 
 public:
     static constexpr int8_t kInvalidRssiValue = 127; ///< Invalid Received Signal Strength Indicator (RSSI) value.
@@ -190,12 +195,15 @@ public:
         void EnergyScanDone(int8_t aMaxRssi);
 
         /**
-         * This method notifies user of `SubMac` that MAC frame counter is updated.
+         * This method notifies user of `SubMac` that a specific MAC frame counter is used for transmission.
          *
-         * @param[in]  aFrameCounter  The MAC frame counter value.
+         * It is possible that this callback is invoked out of order in terms of counter values (i.e., called for a
+         * smaller counter value after a call for a larger counter value).
+         *
+         * @param[in]  aFrameCounter  The MAC frame counter value which was used.
          *
          */
-        void FrameCounterUpdated(uint32_t aFrameCounter);
+        void FrameCounterUsed(uint32_t aFrameCounter);
     };
 
     /**
@@ -594,6 +602,12 @@ private:
     };
 #endif
 
+    /**
+     * This method initializes the states of the sub-MAC layer.
+     *
+     */
+    void Init(void);
+
     bool RadioSupportsCsmaBackoff(void) const
     {
         return ((mRadioCaps & (OT_RADIO_CAPS_CSMA_BACKOFF | OT_RADIO_CAPS_TRANSMIT_RETRIES)) != 0);
@@ -614,7 +628,7 @@ private:
     bool ShouldHandleTransmitTargetTime(void) const;
 
     void ProcessTransmitSecurity(void);
-    void UpdateFrameCounter(uint32_t aFrameCounter);
+    void SignalFrameCounterUsed(uint32_t aFrameCounter);
     void StartCsmaBackoff(void);
     void BeginTransmit(void);
     void SampleRssi(void);
@@ -622,7 +636,7 @@ private:
     void HandleReceiveDone(RxFrame *aFrame, Error aError);
     void HandleTransmitStarted(TxFrame &aFrame);
     void HandleTransmitDone(TxFrame &aFrame, RxFrame *aAckFrame, Error aError);
-    void UpdateFrameCounterOnTxDone(const TxFrame &aFrame);
+    void SignalFrameCounterUsedOnTxDone(const TxFrame &aFrame);
     void HandleEnergyScanDone(int8_t aMaxRssi);
 
     static void HandleTimer(Timer &aTimer);

@@ -62,6 +62,10 @@ if (openthread_enable_core_config_args) {
       defines += [ "OPENTHREAD_CONFIG_ASSERT_ENABLE=0" ]
     }
 
+    if (openthread_config_anycast_locator_enable) {
+      defines += [ "OPENTHREAD_CONFIG_ANYCAST_LOCATOR_ENABLE=1" ]
+    }
+
     if (openthread_config_backbone_router_enable) {
       defines += [ "OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE=1" ]
     }
@@ -374,12 +378,14 @@ openthread_core_files = [
   "coap/coap_secure.hpp",
   "common/arg_macros.hpp",
   "common/array.hpp",
+  "common/as_core_type.hpp",
   "common/bit_vector.hpp",
   "common/clearable.hpp",
   "common/code_utils.hpp",
   "common/const_cast.hpp",
   "common/crc16.cpp",
   "common/crc16.hpp",
+  "common/data.hpp",
   "common/debug.hpp",
   "common/encoding.hpp",
   "common/equatable.hpp",
@@ -432,6 +438,7 @@ openthread_core_files = [
   "crypto/aes_ccm.hpp",
   "crypto/aes_ecb.cpp",
   "crypto/aes_ecb.hpp",
+  "crypto/context_size.hpp",
   "crypto/crypto_platform.cpp",
   "crypto/ecdsa.cpp",
   "crypto/ecdsa.hpp",
@@ -563,6 +570,8 @@ openthread_core_files = [
   "thread/announce_begin_server.hpp",
   "thread/announce_sender.cpp",
   "thread/announce_sender.hpp",
+  "thread/anycast_locator.cpp",
+  "thread/anycast_locator.hpp",
   "thread/child_mask.hpp",
   "thread/child_table.cpp",
   "thread/child_table.hpp",
@@ -725,6 +734,7 @@ source_set("libopenthread_core_config") {
     "config/coap.h",
     "config/commissioner.h",
     "config/coprocessor_rpc.h",
+    "config/crypto.h",
     "config/dataset_updater.h",
     "config/dhcp6_client.h",
     "config/dhcp6_server.h",
