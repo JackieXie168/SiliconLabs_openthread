@@ -233,6 +233,7 @@ set(COMMON_SOURCES
 )
 
 set(RADIO_COMMON_SOURCES
+    api/coprocessor_rpc_api.cpp
     api/diags_api.cpp
     api/error_api.cpp
     api/instance_api.cpp
@@ -248,9 +249,11 @@ set(RADIO_COMMON_SOURCES
     common/tasklet.cpp
     common/timer.cpp
     common/uptime.cpp
+    coprocessor/rpc.cpp
     crypto/aes_ccm.cpp
     crypto/aes_ecb.cpp
     crypto/crypto_platform.cpp
+    crypto/hmac_sha256.cpp
     crypto/storage.cpp
     diags/factory_diags.cpp
     mac/link_raw.cpp
