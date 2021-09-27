@@ -306,6 +306,7 @@ LOCAL_SRC_FILES                                                  := \
     src/core/thread/address_resolver.cpp                            \
     src/core/thread/announce_begin_server.cpp                       \
     src/core/thread/announce_sender.cpp                             \
+    src/core/thread/anycast_locator.cpp                             \
     src/core/thread/child_table.cpp                                 \
     src/core/thread/csl_tx_scheduler.cpp                            \
     src/core/thread/discover_scanner.cpp                            \
@@ -509,6 +510,7 @@ LOCAL_SRC_FILES                            := \
     src/cli/cli_history.cpp                   \
     src/cli/cli_joiner.cpp                    \
     src/cli/cli_network_data.cpp              \
+    src/cli/cli_output.cpp                    \
     src/cli/cli_srp_client.cpp                \
     src/cli/cli_srp_server.cpp                \
     src/cli/cli_tcp.cpp                       \

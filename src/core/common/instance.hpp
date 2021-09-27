@@ -195,16 +195,24 @@ public:
      */
     void Reset(void);
 
+#if OPENTHREAD_RADIO
+    /**
+     * This method resets the internal states of the radio.
+     *
+     */
+    void ResetRadioStack(void);
+#endif
+
     /**
      * This method returns the active log level.
      *
      * @returns The log level.
      *
      */
-    otLogLevel GetLogLevel(void) const
+    static otLogLevel GetLogLevel(void)
 #if OPENTHREAD_CONFIG_LOG_LEVEL_DYNAMIC_ENABLE
     {
-        return mLogLevel;
+        return sLogLevel;
     }
 #else
     {
@@ -219,10 +227,10 @@ public:
      * @param[in] aLogLevel  A log level.
      *
      */
-    void SetLogLevel(otLogLevel aLogLevel)
+    static void SetLogLevel(otLogLevel aLogLevel)
     {
         OT_ASSERT(aLogLevel <= OT_LOG_LEVEL_DEBG && aLogLevel >= OT_LOG_LEVEL_NONE);
-        mLogLevel = aLogLevel;
+        sLogLevel = aLogLevel;
     }
 #endif
 
@@ -422,7 +430,7 @@ private:
 #endif // OPENTHREAD_RADIO || OPENTHREAD_CONFIG_LINK_RAW_ENABLE
 
 #if OPENTHREAD_CONFIG_LOG_LEVEL_DYNAMIC_ENABLE
-    otLogLevel mLogLevel;
+    static otLogLevel sLogLevel;
 #endif
 #if OPENTHREAD_ENABLE_VENDOR_EXTENSION
     Extension::ExtensionBase &mExtension;
@@ -642,6 +650,13 @@ template <> inline PanIdQueryServer &Instance::Get(void)
 {
     return mThreadNetif.mPanIdQuery;
 }
+
+#if OPENTHREAD_CONFIG_TMF_ANYCAST_LOCATOR_ENABLE
+template <> inline AnycastLocator &Instance::Get(void)
+{
+    return mThreadNetif.mAnycastLocator;
+}
+#endif
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE || OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 template <> inline NetworkData::Local &Instance::Get(void)
