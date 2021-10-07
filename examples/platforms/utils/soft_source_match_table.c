@@ -43,11 +43,11 @@
 #include "utils/code_utils.h"
 
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
-static uint16_t sPanId = 0;
+static uint8_t sPanId[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_PANID_NUM] = {0};
 
-void utilsSoftSrcMatchSetPanId(uint16_t aPanId)
+void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId)
 {
-    sPanId = aPanId;
+    sPanId[iid] = aPanId;
 }
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 
@@ -58,12 +58,12 @@ typedef struct srcMatchShortEntry
     bool     allocated;
 } sSrcMatchShortEntry;
 
-static sSrcMatchShortEntry srcMatchShortEntry[RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM];
+static sSrcMatchShortEntry srcMatchShortEntry[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM];
 
-int16_t utilsSoftSrcMatchShortFindEntry(uint16_t aShortAddress)
+int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 {
     int16_t  entry    = -1;
-    uint16_t checksum = aShortAddress + sPanId;
+    uint16_t checksum = aShortAddress + sPanId[iid];
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
     {
@@ -77,13 +77,13 @@ int16_t utilsSoftSrcMatchShortFindEntry(uint16_t aShortAddress)
     return entry;
 }
 
-static int16_t findSrcMatchShortAvailEntry(void)
+static int16_t findSrcMatchShortAvailEntry(uint8_t iid)
 {
     int16_t entry = -1;
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
     {
-        if (!srcMatchShortEntry[i].allocated)
+        if (!srcMatchShortEntry[iid][i].allocated)
         {
             entry = i;
             break;
@@ -93,18 +93,18 @@ static int16_t findSrcMatchShortAvailEntry(void)
     return entry;
 }
 
-static inline void addToSrcMatchShortIndirect(uint16_t entry, uint16_t aShortAddress)
+static inline void addToSrcMatchShortIndirect(uint8_t iid, uint16_t entry, uint16_t aShortAddress)
 {
-    uint16_t checksum = aShortAddress + sPanId;
+    uint16_t checksum = aShortAddress + sPanId[iid];
 
-    srcMatchShortEntry[entry].checksum  = checksum;
-    srcMatchShortEntry[entry].allocated = true;
+    srcMatchShortEntry[iid][entry].checksum  = checksum;
+    srcMatchShortEntry[iid][entry].allocated = true;
 }
 
-static inline void removeFromSrcMatchShortIndirect(uint16_t entry)
+static inline void removeFromSrcMatchShortIndirect(uint8_t iid, uint16_t entry)
 {
-    srcMatchShortEntry[entry].allocated = false;
-    srcMatchShortEntry[entry].checksum  = 0;
+    srcMatchShortEntry[iid][entry].allocated = false;
+    srcMatchShortEntry[iid][entry].checksum  = 0;
 }
 
 otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, uint16_t aShortAddress)
@@ -114,12 +114,13 @@ otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, uint16_t aShortA
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
 
-    entry = findSrcMatchShortAvailEntry();
-    otLogDebgPlat("Add ShortAddr entry: %d", entry);
+    uint8_t iid = otNcpPlatGetCurCommandIid();
+    entry = findSrcMatchShortAvailEntry(iid);
+    otLogDebgPlat("Add ShortAddr entry: %d (iid: %d)", entry, iid);
 
     otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM, error = OT_ERROR_NO_BUFS);
 
-    addToSrcMatchShortIndirect((uint16_t)entry, aShortAddress);
+    addToSrcMatchShortIndirect(iid, (uint16_t)entry, aShortAddress);
 
 exit:
     return error;
@@ -132,12 +133,13 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, uint16_t aShor
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
 
-    entry = utilsSoftSrcMatchShortFindEntry(aShortAddress);
-    otLogDebgPlat("Clear ShortAddr entry: %d", entry);
+    uint8_t iid = otNcpPlatGetCurCommandIid();
+    entry = utilsSoftSrcMatchShortFindEntry(iid, aShortAddress);
+    otLogDebgPlat("Clear ShortAddr entry: %d (iid: %d)", entry, iid);
 
     otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM, error = OT_ERROR_NO_ADDRESS);
 
-    removeFromSrcMatchShortIndirect((uint16_t)entry);
+    removeFromSrcMatchShortIndirect(iid, (uint16_t)entry);
 
 exit:
     return error;
@@ -147,9 +149,10 @@ void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-    otLogDebgPlat("Clear ShortAddr entries", NULL);
+    uint8_t iid = otNcpPlatGetCurCommandIid();
+    otLogDebgPlat("Clear ShortAddr entries (iid: %d)", iid);
 
-    memset(srcMatchShortEntry, 0, sizeof(srcMatchShortEntry));
+    memset(srcMatchShortEntry[iid], 0, sizeof(srcMatchShortEntry[iid]));
 }
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
 
@@ -160,12 +163,12 @@ typedef struct srcMatchExtEntry
     bool     allocated;
 } sSrcMatchExtEntry;
 
-static sSrcMatchExtEntry srcMatchExtEntry[RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM];
+static sSrcMatchExtEntry srcMatchExtEntry[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM];
 
-int16_t utilsSoftSrcMatchExtFindEntry(const otExtAddress *aExtAddress)
+int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddress)
 {
     int16_t  entry    = -1;
-    uint16_t checksum = sPanId;
+    uint16_t checksum = sPanId[iid];
 
     checksum += (uint16_t)aExtAddress->m8[0] | (uint16_t)(aExtAddress->m8[1] << 8);
     checksum += (uint16_t)aExtAddress->m8[2] | (uint16_t)(aExtAddress->m8[3] << 8);
@@ -174,7 +177,7 @@ int16_t utilsSoftSrcMatchExtFindEntry(const otExtAddress *aExtAddress)
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM; i++)
     {
-        if (checksum == srcMatchExtEntry[i].checksum && srcMatchExtEntry[i].allocated)
+        if (checksum == srcMatchExtEntry[iid][i].checksum && srcMatchExtEntry[iid][i].allocated)
         {
             entry = i;
             break;
@@ -184,13 +187,13 @@ int16_t utilsSoftSrcMatchExtFindEntry(const otExtAddress *aExtAddress)
     return entry;
 }
 
-static int16_t findSrcMatchExtAvailEntry(void)
+static int16_t findSrcMatchExtAvailEntry(uint8_t iid)
 {
     int16_t entry = -1;
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM; i++)
     {
-        if (!srcMatchExtEntry[i].allocated)
+        if (!srcMatchExtEntry[iid][i].allocated)
         {
             entry = i;
             break;
@@ -200,67 +203,67 @@ static int16_t findSrcMatchExtAvailEntry(void)
     return entry;
 }
 
-static inline void addToSrcMatchExtIndirect(uint16_t entry, const otExtAddress *aExtAddress)
+static inline void addToSrcMatchExtIndirect(uint8_t iid, uint16_t entry, const otExtAddress *aExtAddress)
 {
-    uint16_t checksum = sPanId;
+    uint16_t checksum = sPanId[iid];
 
     checksum += (uint16_t)aExtAddress->m8[0] | (uint16_t)(aExtAddress->m8[1] << 8);
     checksum += (uint16_t)aExtAddress->m8[2] | (uint16_t)(aExtAddress->m8[3] << 8);
     checksum += (uint16_t)aExtAddress->m8[4] | (uint16_t)(aExtAddress->m8[5] << 8);
     checksum += (uint16_t)aExtAddress->m8[6] | (uint16_t)(aExtAddress->m8[7] << 8);
 
-    srcMatchExtEntry[entry].checksum  = checksum;
-    srcMatchExtEntry[entry].allocated = true;
+    srcMatchExtEntry[iid][entry].checksum  = checksum;
+    srcMatchExtEntry[iid][entry].allocated = true;
 }
 
-static inline void removeFromSrcMatchExtIndirect(uint16_t entry)
+static inline void removeFromSrcMatchExtIndirect(uint8_t iid, uint16_t entry)
 {
-    srcMatchExtEntry[entry].allocated = false;
-    srcMatchExtEntry[entry].checksum  = 0;
+    srcMatchExtEntry[iid][entry].allocated = false;
+    srcMatchExtEntry[iid][entry].checksum  = 0;
 }
 
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
+otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, uint8_t iid, const otExtAddress *aExtAddress)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
 
-    entry = findSrcMatchExtAvailEntry();
-    otLogDebgPlat("Add ExtAddr entry: %d", entry);
+    entry = findSrcMatchExtAvailEntry(iid);
+    otLogDebgPlat("Add ExtAddr entry: %d (iid: %d)", entry, iid);
 
     otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM, error = OT_ERROR_NO_BUFS);
 
-    addToSrcMatchExtIndirect((uint16_t)entry, aExtAddress);
+    addToSrcMatchExtIndirect(iid, (uint16_t)entry, aExtAddress);
 
 exit:
     return error;
 }
 
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
+otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, uint8_t iid, const otExtAddress *aExtAddress)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
 
-    entry = utilsSoftSrcMatchExtFindEntry(aExtAddress);
-    otLogDebgPlat("Clear ExtAddr entry: %d", entry);
+    entry = utilsSoftSrcMatchExtFindEntry(iid, aExtAddress);
+    otLogDebgPlat("Clear ExtAddr entry: %d (iid: %d)", entry, iid);
 
     otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM, error = OT_ERROR_NO_ADDRESS);
 
-    removeFromSrcMatchExtIndirect((uint16_t)entry);
+    removeFromSrcMatchExtIndirect(iid, (uint16_t)entry);
 
 exit:
     return error;
 }
 
-void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
+void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance, uint8_t iid)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-    otLogDebgPlat("Clear ExtAddr entries", NULL);
+    otLogDebgPlat("Clear ExtAddr entries (iid: %d)", iid);
 
-    memset(srcMatchExtEntry, 0, sizeof(srcMatchExtEntry));
+    memset(srcMatchExtEntry[iid], 0, sizeof(srcMatchExtEntry[iid]));
 }
 #endif // RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM

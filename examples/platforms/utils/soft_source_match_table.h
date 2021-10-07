@@ -53,16 +53,23 @@ extern "C" {
 #define RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM OPENTHREAD_CONFIG_MLE_MAX_CHILDREN
 #endif
 
+#ifndef RADIO_CONFIG_SRC_MATCH_PANID_NUM
+#define RADIO_CONFIG_SRC_MATCH_PANID_NUM 1
+#endif
+
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
-void utilsSoftSrcMatchSetPanId(uint16_t aPanId);
+void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId);
+#endif
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
-int16_t utilsSoftSrcMatchShortFindEntry(uint16_t aShortAddress);
+int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress);
+#endif
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
 
 #if RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
-int16_t utilsSoftSrcMatchExtFindEntry(const otExtAddress *aExtAddress);
+int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddress);
+#endif
 #endif // RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 
 #ifdef __cplusplus
