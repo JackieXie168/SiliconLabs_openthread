@@ -42,8 +42,14 @@
 #include "common/logging.hpp"
 #include "utils/code_utils.h"
 
+#if OPENTHREAD_RADIO && OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE == 1
+extern uint8_t otNcpPlatGetCurCommandIid(void);
+#else
+#define otNcpPlatGetCurCommandIid() 0
+#endif
+
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
-static uint16_t sPanId[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_PANID_NUM] = {0};
+static uint16_t sPanId[RADIO_CONFIG_SRC_MATCH_PANID_NUM] = {0};
 
 void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId)
 {
@@ -67,7 +73,7 @@ int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
     {
-        if (checksum == srcMatchShortEntry[i].checksum && srcMatchShortEntry[i].allocated)
+        if (checksum == srcMatchShortEntry[iid][i].checksum && srcMatchShortEntry[iid][i].allocated)
         {
             entry = i;
             break;
@@ -222,13 +228,14 @@ static inline void removeFromSrcMatchExtIndirect(uint8_t iid, uint16_t entry)
     srcMatchExtEntry[iid][entry].checksum  = 0;
 }
 
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, uint8_t iid, const otExtAddress *aExtAddress)
+otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
 
+    uint8_t iid = otNcpPlatGetCurCommandIid();
     entry = findSrcMatchExtAvailEntry(iid);
     otLogDebgPlat("Add ExtAddr entry: %d (iid: %d)", entry, iid);
 
@@ -240,13 +247,14 @@ exit:
     return error;
 }
 
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, uint8_t iid, const otExtAddress *aExtAddress)
+otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
 
+    uint8_t iid = otNcpPlatGetCurCommandIid();
     entry = utilsSoftSrcMatchExtFindEntry(iid, aExtAddress);
     otLogDebgPlat("Clear ExtAddr entry: %d (iid: %d)", entry, iid);
 
@@ -258,10 +266,11 @@ exit:
     return error;
 }
 
-void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance, uint8_t iid)
+void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
+    uint8_t iid = otNcpPlatGetCurCommandIid();
     otLogDebgPlat("Clear ExtAddr entries (iid: %d)", iid);
 
     memset(srcMatchExtEntry[iid], 0, sizeof(srcMatchExtEntry[iid]));
