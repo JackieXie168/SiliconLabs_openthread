@@ -59,17 +59,14 @@ extern "C" {
 
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId);
-#endif
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
 int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress);
-#endif
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
 
 #if RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddress);
-#endif
 #endif // RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 
 #ifdef __cplusplus

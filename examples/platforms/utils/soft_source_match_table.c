@@ -43,7 +43,7 @@
 #include "utils/code_utils.h"
 
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
-static uint8_t sPanId[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_PANID_NUM] = {0};
+static uint16_t sPanId[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_PANID_NUM] = {0};
 
 void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId)
 {
