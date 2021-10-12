@@ -80,6 +80,7 @@ static sSrcMatchShortEntry srcMatchShortEntry[RADIO_CONFIG_SRC_MATCH_PANID_NUM][
 static void printShortEntryTable(uint8_t iid)
 {
     const uint8_t panIndex = iid - 1;
+    OT_UNUSED_VARIABLE(panIndex);
 
     otLogDebgPlat("================================|============|===========");
     otLogDebgPlat("ShortEntry[panIndex][entry]     | .allocated | .checksum ");
@@ -216,6 +217,8 @@ static sSrcMatchExtEntry srcMatchExtEntry[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADI
 static void printExtEntryTable(uint8_t iid)
 {
     const uint8_t panIndex = iid - 1;
+    OT_UNUSED_VARIABLE(panIndex);
+
     otLogDebgPlat("==============================|============|===========");
     otLogDebgPlat("ExtEntry[panIndex][entry]     | .allocated | .checksum ");
     otLogDebgPlat("==============================|============|===========");
