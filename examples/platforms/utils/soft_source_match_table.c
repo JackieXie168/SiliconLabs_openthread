@@ -88,9 +88,6 @@ static void printShortEntryTable(uint8_t iid)
     {
         otLogDebgPlat("ShortEntry[panIndex=%d][entry=%d] | %d          | 0x%04x", panIndex, i,
                       srcMatchShortEntry[panIndex][i].allocated, srcMatchShortEntry[panIndex][i].checksum);
-        // otLogDebgPlat("ShortEntry[panIndex=%d][i=%d]", panIndex, i);
-        // otLogDebgPlat("        .allocated = %s", (srcMatchShortEntry[panIndex][i].allocated? "true" : "false" ));
-        // otLogDebgPlat("        .checksum  = %04x", srcMatchShortEntry[panIndex][i].checksum);
     }
     otLogDebgPlat("================================|============|===========");
 }
@@ -226,8 +223,6 @@ static void printExtEntryTable(uint8_t iid)
     {
         otLogDebgPlat("ExtEntry[panIndex=%d][entry=%d] | %d          | 0x%04x", panIndex, i,
                       srcMatchExtEntry[panIndex][i].allocated, srcMatchExtEntry[panIndex][i].checksum);
-        // otLogDebgPlat("        .allocated = %s", (srcMatchExtEntry[panIndex][i].allocated? "true" : "false" ));
-        // otLogDebgPlat("        .checksum  = %04x", srcMatchExtEntry[panIndex][i].checksum);
     }
     otLogDebgPlat("==============================|============|===========");
 }
