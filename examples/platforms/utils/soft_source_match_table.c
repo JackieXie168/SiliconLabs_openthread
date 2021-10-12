@@ -62,7 +62,7 @@ static void printPanIdTable(void)
 void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId)
 {
     const uint8_t panIndex = iid - 1;
-    sPanId[panIndex] = aPanId;
+    sPanId[panIndex]       = aPanId;
     otLogInfoPlat("Setting panIndex=%d to 0x%04x", panIndex, aPanId);
     printPanIdTable();
 }
@@ -86,11 +86,8 @@ static void printShortEntryTable(uint8_t iid)
     otLogDebgPlat("================================|============|===========");
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
     {
-        otLogDebgPlat("ShortEntry[panIndex=%d][entry=%d] | %d          | 0x%04x",
-            panIndex,
-            i,
-            srcMatchShortEntry[panIndex][i].allocated,
-            srcMatchShortEntry[panIndex][i].checksum);
+        otLogDebgPlat("ShortEntry[panIndex=%d][entry=%d] | %d          | 0x%04x", panIndex, i,
+                      srcMatchShortEntry[panIndex][i].allocated, srcMatchShortEntry[panIndex][i].checksum);
         // otLogDebgPlat("ShortEntry[panIndex=%d][i=%d]", panIndex, i);
         // otLogDebgPlat("        .allocated = %s", (srcMatchShortEntry[panIndex][i].allocated? "true" : "false" ));
         // otLogDebgPlat("        .checksum  = %04x", srcMatchShortEntry[panIndex][i].checksum);
@@ -101,8 +98,8 @@ static void printShortEntryTable(uint8_t iid)
 int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 {
     const uint8_t panIndex = iid - 1;
-    int16_t  entry    = -1;
-    uint16_t checksum = aShortAddress + sPanId[iid];
+    int16_t       entry    = -1;
+    uint16_t      checksum = aShortAddress + sPanId[iid];
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
     {
@@ -118,7 +115,7 @@ int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 
 static int16_t findSrcMatchShortAvailEntry(uint8_t iid)
 {
-    int16_t entry = -1;
+    int16_t       entry    = -1;
     const uint8_t panIndex = iid - 1;
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
@@ -135,7 +132,7 @@ static int16_t findSrcMatchShortAvailEntry(uint8_t iid)
 
 static inline void addToSrcMatchShortIndirect(uint8_t iid, uint16_t entry, uint16_t aShortAddress)
 {
-    uint16_t checksum = aShortAddress + sPanId[iid];
+    uint16_t      checksum = aShortAddress + sPanId[iid];
     const uint8_t panIndex = iid - 1;
 
     srcMatchShortEntry[panIndex][entry].checksum  = checksum;
@@ -159,10 +156,10 @@ otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, uint16_t aShortA
     OT_UNUSED_VARIABLE(aInstance);
 
     otError error = OT_ERROR_NONE;
-    int8_t iid = -1;
+    int8_t  iid   = -1;
     int16_t entry = -1;
 
-    iid = otNcpPlatGetCurCommandIid();
+    iid   = otNcpPlatGetCurCommandIid();
     entry = findSrcMatchShortAvailEntry(iid);
 
     otLogDebgPlat("Add ShortAddr: iid=%d, entry=%d, addr=0x%04x", iid, entry, aShortAddress);
@@ -181,7 +178,7 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, uint16_t aShor
 
     otError error = OT_ERROR_NONE;
     int16_t entry = -1;
-    int8_t    iid = -1;
+    int8_t  iid   = -1;
 
     iid = otNcpPlatGetCurCommandIid();
 
@@ -200,7 +197,7 @@ void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-    uint8_t iid = otNcpPlatGetCurCommandIid();
+    uint8_t       iid      = otNcpPlatGetCurCommandIid();
     const uint8_t panIndex = iid - 1;
 
     otLogDebgPlat("Clear ShortAddr entries (iid: %d)", iid);
@@ -227,11 +224,8 @@ static void printExtEntryTable(uint8_t iid)
     otLogDebgPlat("==============================|============|===========");
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM; i++)
     {
-        otLogDebgPlat("ExtEntry[panIndex=%d][entry=%d] | %d          | 0x%04x",
-            panIndex,
-            i,
-            srcMatchExtEntry[panIndex][i].allocated,
-            srcMatchExtEntry[panIndex][i].checksum);
+        otLogDebgPlat("ExtEntry[panIndex=%d][entry=%d] | %d          | 0x%04x", panIndex, i,
+                      srcMatchExtEntry[panIndex][i].allocated, srcMatchExtEntry[panIndex][i].checksum);
         // otLogDebgPlat("        .allocated = %s", (srcMatchExtEntry[panIndex][i].allocated? "true" : "false" ));
         // otLogDebgPlat("        .checksum  = %04x", srcMatchExtEntry[panIndex][i].checksum);
     }
@@ -240,9 +234,9 @@ static void printExtEntryTable(uint8_t iid)
 
 int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddress)
 {
-    int16_t  entry    = -1;
+    int16_t       entry    = -1;
     const uint8_t panIndex = iid - 1;
-    uint16_t checksum = sPanId[panIndex];
+    uint16_t      checksum = sPanId[panIndex];
 
     checksum += (uint16_t)aExtAddress->m8[0] | (uint16_t)(aExtAddress->m8[1] << 8);
     checksum += (uint16_t)aExtAddress->m8[2] | (uint16_t)(aExtAddress->m8[3] << 8);
@@ -263,7 +257,7 @@ int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddre
 
 static int16_t findSrcMatchExtAvailEntry(uint8_t iid)
 {
-    int16_t entry = -1;
+    int16_t       entry    = -1;
     const uint8_t panIndex = iid - 1;
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM; i++)
@@ -281,7 +275,7 @@ static int16_t findSrcMatchExtAvailEntry(uint8_t iid)
 static inline void addToSrcMatchExtIndirect(uint8_t iid, uint16_t entry, const otExtAddress *aExtAddress)
 {
     const uint8_t panIndex = iid - 1;
-    uint16_t checksum = sPanId[panIndex];
+    uint16_t      checksum = sPanId[panIndex];
 
     checksum += (uint16_t)aExtAddress->m8[0] | (uint16_t)(aExtAddress->m8[1] << 8);
     checksum += (uint16_t)aExtAddress->m8[2] | (uint16_t)(aExtAddress->m8[3] << 8);
@@ -296,7 +290,7 @@ static inline void addToSrcMatchExtIndirect(uint8_t iid, uint16_t entry, const o
 
 static inline void removeFromSrcMatchExtIndirect(uint8_t iid, uint16_t entry)
 {
-    const uint8_t panIndex = (uint8_t)iid - 1;
+    const uint8_t panIndex = iid - 1;
 
     srcMatchExtEntry[panIndex][entry].allocated = false;
     srcMatchExtEntry[panIndex][entry].checksum  = 0;
@@ -312,7 +306,7 @@ otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress
     int16_t entry = -1;
 
     uint8_t iid = otNcpPlatGetCurCommandIid();
-    entry = findSrcMatchExtAvailEntry(iid);
+    entry       = findSrcMatchExtAvailEntry(iid);
 
     otLogDebgPlat("Add ExtAddr: iid=%d, entry=%d, addr 0x%016x", iid, entry, aExtAddress->m8);
 
@@ -332,7 +326,7 @@ otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddre
     int16_t entry = -1;
 
     uint8_t iid = otNcpPlatGetCurCommandIid();
-    entry = utilsSoftSrcMatchExtFindEntry(iid, aExtAddress);
+    entry       = utilsSoftSrcMatchExtFindEntry(iid, aExtAddress);
     otLogDebgPlat("Clear ExtAddr: iid=%d, entry=%d", iid, entry);
 
     otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM, error = OT_ERROR_NO_ADDRESS);
@@ -349,7 +343,7 @@ void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 
     uint8_t iid = otNcpPlatGetCurCommandIid();
     otLogDebgPlat("Clear ExtAddr entries (iid: %d)", iid);
-    const uint8_t panIndex = (uint8_t)iid - 1;
+    const uint8_t panIndex = iid - 1;
 
     memset(srcMatchExtEntry[panIndex], 0, sizeof(srcMatchExtEntry[panIndex]));
     printExtEntryTable(iid);
