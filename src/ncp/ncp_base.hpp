@@ -601,7 +601,9 @@ protected:
     bool            mDiscoveryScanEnableFiltering;
     uint16_t        mDiscoveryScanPanId;
 
+#if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
     Tasklet         mHandlePendingCommandsTask;
+#endif
     Tasklet         mUpdateChangedPropsTask;
     uint32_t        mThreadChangedFlags;
     ChangedPropsSet mChangedPropsSet;

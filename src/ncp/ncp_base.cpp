@@ -223,7 +223,9 @@ NcpBase::NcpBase(Instance *aInstance)
     , mDiscoveryScanJoinerFlag(false)
     , mDiscoveryScanEnableFiltering(false)
     , mDiscoveryScanPanId(0xffff)
+#if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
     , mHandlePendingCommandsTask(*aInstance, NcpBase::HandlePendingCommands)
+#endif
     , mUpdateChangedPropsTask(*aInstance, NcpBase::UpdateChangedProps)
     , mThreadChangedFlags(0)
     , mHostPowerState(SPINEL_HOST_POWER_STATE_ONLINE)
