@@ -43,7 +43,7 @@
 #include "common/instance.hpp"
 #include "common/new.hpp"
 
-#if 1 //OPENTHREAD_CONFIG_NCP_CPC_ENABLE
+#if OPENTHREAD_CONFIG_NCP_CPC_ENABLE
 
 namespace ot {
 namespace Ncp {
