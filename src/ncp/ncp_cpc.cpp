@@ -43,7 +43,7 @@
 #include "common/instance.hpp"
 #include "common/new.hpp"
 
-#if OPENTHREAD_CONFIG_NCP_CPC_ENABLE
+#if 1 //OPENTHREAD_CONFIG_NCP_CPC_ENABLE
 
 namespace ot {
 namespace Ncp {
@@ -73,18 +73,29 @@ NcpCPC::NcpCPC(Instance *aInstance)
     , mIsWriting(false)
     , mCpcSendTask(*aInstance, SendToCPC)
     , mCpcEndpointErrorTask(*aInstance, HandleEndpointError)
+    , mCpcEndpointOpenTask(*aInstance, HandleOpenEndPoint)
 {
-    OpenEndpoint();
+
 }
 
 void NcpCPC::OpenEndpoint(void)
 {
     sl_status_t status = sli_cpc_open_service_endpoint(&mUserEp, 
-                                                       SL_CPC_ENDPOINT_15_4, 
-                                                       0, 
-                                                       1);
+                                                        SL_CPC_ENDPOINT_15_4, 
+                                                        0, 
+                                                        1);
 
-    OT_ASSERT(status == SL_STATUS_ALREADY_EXISTS || status == SL_STATUS_OK);
+    if(status == SL_STATUS_BUSY)
+    {
+        static_cast<NcpCPC *>(GetNcpInstance())->mCpcEndpointOpenTask.Post();
+        return;
+    }
+    else if(status == SL_STATUS_ALREADY_EXISTS)
+    {
+        return;
+    }
+
+    OT_ASSERT(status == SL_STATUS_OK);
 
     status = sl_cpc_set_endpoint_option(&mUserEp, 
                                         SL_CPC_ENDPOINT_ON_IFRAME_WRITE_COMPLETED, 
@@ -105,6 +116,7 @@ void NcpCPC::OpenEndpoint(void)
     OT_ASSERT(status == SL_STATUS_OK);    
 
     mTxFrameBuffer.SetFrameAddedCallback(HandleFrameAddedToNcpBuffer, this);
+
 }
 
 void NcpCPC::HandleFrameAddedToNcpBuffer(void *                   aContext,
@@ -206,7 +218,17 @@ void NcpCPC::HandleEndpointError(Tasklet &aTasklet)
 void NcpCPC::HandleEndpointError(void)
 {
     OT_ASSERT(sl_cpc_close_endpoint(&mUserEp) == SL_STATUS_OK);
+}
+
+void NcpCPC::HandleOpenEndPoint(void)
+{
     OpenEndpoint();
+}
+
+void NcpCPC::HandleOpenEndPoint(Tasklet &aTasklet)
+{
+    OT_UNUSED_VARIABLE(aTasklet);
+    static_cast<NcpCPC *>(GetNcpInstance())->HandleOpenEndPoint();
 }
 
 extern "C" void efr32CpcProcess(void)
@@ -215,6 +237,7 @@ extern "C" void efr32CpcProcess(void)
 
     if (ncpCPC != nullptr)
     {
+        ncpCPC->OpenEndpoint();
         ncpCPC->ProcessCpc();
     }
 }

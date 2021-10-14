@@ -54,6 +54,12 @@ public:
     explicit NcpCPC(Instance *aInstance);
 
     /**
+     * This method is called to Open 15.4 endpoint.
+     *
+     */
+    void OpenEndpoint(void);
+
+    /**
      * This method is called to transmit and receive data.
      *
      */
@@ -64,7 +70,6 @@ private:
         kCpcTxBufferSize = OPENTHREAD_CONFIG_NCP_CPC_TX_CHUNK_SIZE
     };
 
-    void OpenEndpoint(void);
     void HandleFrameAddedToNcpBuffer(void);
 
     static void HandleFrameAddedToNcpBuffer(void *                   aContext,
@@ -83,7 +88,9 @@ private:
                                  void *                    arg);
     static void HandleCPCEndpointError(uint8_t endpoint_id, void *arg);
     static void HandleEndpointError(Tasklet &aTasklet);
+    static void HandleOpenEndPoint(Tasklet &aTasklet);
     void HandleEndpointError(void);
+    void HandleOpenEndPoint(void);
 
     uint8_t mCpcTxBuffer[kCpcTxBufferSize];
     bool mIsReady;
@@ -91,6 +98,7 @@ private:
     sl_cpc_endpoint_handle_t mUserEp;
     Tasklet mCpcSendTask;
     Tasklet mCpcEndpointErrorTask;
+    Tasklet mCpcEndpointOpenTask;
 };
 
 } // namespace Ncp
