@@ -73,25 +73,30 @@ NcpCPC::NcpCPC(Instance *aInstance)
     , mIsWriting(false)
     , mCpcSendTask(*aInstance, SendToCPC)
     , mCpcEndpointErrorTask(*aInstance, HandleEndpointError)
-    , mCpcEndpointOpenTask(*aInstance, HandleOpenEndPoint)
+    , mCpcOpenEndpointTask(*aInstance, HandleOpenEndpoint)
 {
-
 }
 
-void NcpCPC::OpenEndpoint(void)
+void NcpCPC::HandleOpenEndpoint(Tasklet &aTasklet)
 {
-    sl_status_t status = sli_cpc_open_service_endpoint(&mUserEp, 
-                                                        SL_CPC_ENDPOINT_15_4, 
-                                                        0, 
-                                                        1);
+    OT_UNUSED_VARIABLE(aTasklet);
+    static_cast<NcpCPC *>(GetNcpInstance())->HandleOpenEndpoint();
+}
 
-    if(status == SL_STATUS_BUSY)
+void NcpCPC::HandleOpenEndpoint(void)
+{
+    sl_status_t status = sli_cpc_open_service_endpoint(&mUserEp,
+                                                       SL_CPC_ENDPOINT_15_4,
+                                                       0,
+                                                       1);
+
+    if (status == SL_STATUS_ALREADY_EXISTS)
     {
-        static_cast<NcpCPC *>(GetNcpInstance())->mCpcEndpointOpenTask.Post();
         return;
     }
-    else if(status == SL_STATUS_ALREADY_EXISTS)
+    else if (status == SL_STATUS_BUSY)
     {
+        static_cast<NcpCPC *>(GetNcpInstance())->mCpcOpenEndpointTask.Post();
         return;
     }
 
@@ -116,7 +121,6 @@ void NcpCPC::OpenEndpoint(void)
     OT_ASSERT(status == SL_STATUS_OK);    
 
     mTxFrameBuffer.SetFrameAddedCallback(HandleFrameAddedToNcpBuffer, this);
-
 }
 
 void NcpCPC::HandleFrameAddedToNcpBuffer(void *                   aContext,
@@ -218,17 +222,7 @@ void NcpCPC::HandleEndpointError(Tasklet &aTasklet)
 void NcpCPC::HandleEndpointError(void)
 {
     OT_ASSERT(sl_cpc_close_endpoint(&mUserEp) == SL_STATUS_OK);
-}
-
-void NcpCPC::HandleOpenEndPoint(void)
-{
-    OpenEndpoint();
-}
-
-void NcpCPC::HandleOpenEndPoint(Tasklet &aTasklet)
-{
-    OT_UNUSED_VARIABLE(aTasklet);
-    static_cast<NcpCPC *>(GetNcpInstance())->HandleOpenEndPoint();
+    mIsReady = false;
 }
 
 extern "C" void efr32CpcProcess(void)
@@ -237,7 +231,6 @@ extern "C" void efr32CpcProcess(void)
 
     if (ncpCPC != nullptr)
     {
-        ncpCPC->OpenEndpoint();
         ncpCPC->ProcessCpc();
     }
 }
@@ -248,6 +241,8 @@ void NcpCPC::ProcessCpc(void)
     void *data;
     uint16_t dataLength;
 
+    HandleOpenEndpoint();
+    
     status = sl_cpc_read(&mUserEp,
                          &data,
                          &dataLength,
