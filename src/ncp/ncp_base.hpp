@@ -601,6 +601,9 @@ protected:
     bool            mDiscoveryScanEnableFiltering;
     uint16_t        mDiscoveryScanPanId;
 
+#if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
+    Tasklet         mHandlePendingCommandsTask;
+#endif
     Tasklet         mUpdateChangedPropsTask;
     uint32_t        mThreadChangedFlags;
     ChangedPropsSet mChangedPropsSet;
@@ -675,6 +678,7 @@ protected:
     otError EnqueuePendingCommand(PendingCommandType aType, uint8_t aHeader, uint8_t aScanChannel);
     otError HandlePendingTransmit(PendingCommandEntry *entry);
     otError HandlePendingEnergyScan(PendingCommandEntry *entry);
+    static void HandlePendingCommands(Tasklet &aTasklet);
     void    HandlePendingCommands(void);
 #endif // OPENTHREAD_RADIO || OPENTHREAD_CONFIG_LINK_RAW_ENABLE
 #endif // OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE

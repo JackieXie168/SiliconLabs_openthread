@@ -187,7 +187,7 @@ void NcpBase::LinkRawTransmitDone(otRadioFrame *aFrame, otRadioFrame *aAckFrame,
     }
 
 #if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
-    HandlePendingCommands();
+    mHandlePendingCommandsTask.Post();
 #endif
 
 exit:

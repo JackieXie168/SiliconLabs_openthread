@@ -223,6 +223,9 @@ NcpBase::NcpBase(Instance *aInstance)
     , mDiscoveryScanJoinerFlag(false)
     , mDiscoveryScanEnableFiltering(false)
     , mDiscoveryScanPanId(0xffff)
+#if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
+    , mHandlePendingCommandsTask(*aInstance, NcpBase::HandlePendingCommands)
+#endif
     , mUpdateChangedPropsTask(*aInstance, NcpBase::UpdateChangedProps)
     , mThreadChangedFlags(0)
     , mHostPowerState(SPINEL_HOST_POWER_STATE_ONLINE)
@@ -941,6 +944,12 @@ exit:
         LinkRawEnergyScanDone(ot::Mac::SubMac::kInvalidRssiValue);
     }
     return error;
+}
+
+void NcpBase::HandlePendingCommands(Tasklet &aTasklet)
+{
+    OT_UNUSED_VARIABLE(aTasklet);
+    GetNcpInstance()->HandlePendingCommands();
 }
 
 void NcpBase::HandlePendingCommands(void)

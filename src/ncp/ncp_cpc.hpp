@@ -64,7 +64,6 @@ private:
         kCpcTxBufferSize = OPENTHREAD_CONFIG_NCP_CPC_TX_CHUNK_SIZE
     };
 
-    void OpenEndpoint(void);
     void HandleFrameAddedToNcpBuffer(void);
 
     static void HandleFrameAddedToNcpBuffer(void *                   aContext,
@@ -84,6 +83,8 @@ private:
     static void HandleCPCEndpointError(uint8_t endpoint_id, void *arg);
     static void HandleEndpointError(Tasklet &aTasklet);
     void HandleEndpointError(void);
+    static void HandleOpenEndpoint(Tasklet &aTasklet);
+    void HandleOpenEndpoint(void);
 
     uint8_t mCpcTxBuffer[kCpcTxBufferSize];
     bool mIsReady;
@@ -91,6 +92,7 @@ private:
     sl_cpc_endpoint_handle_t mUserEp;
     Tasklet mCpcSendTask;
     Tasklet mCpcEndpointErrorTask;
+    Tasklet mCpcOpenEndpointTask;
 };
 
 } // namespace Ncp
