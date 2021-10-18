@@ -210,10 +210,22 @@ Error RPC::ProcessCmd(uint8_t aArgsLength, char *aArgs[], char *aOutput, size_t 
                  (error = HandleCommand(NULL, aArgsLength, aArgs, OT_ARRAY_LENGTH(sCommands), sCommands)));
 
     // Check user commands
-    VerifyOrExit(kErrorNone !=
-                 (error = HandleCommand(mUserCommandsContext, aArgsLength, aArgs, mUserCommandsLength, mUserCommands)));
+    mUserCommandsError = OT_ERROR_NONE;
+
+    error = HandleCommand(mUserCommandsContext, aArgsLength, aArgs, mUserCommandsLength, mUserCommands);
+
+    if (kErrorNone == error)
+    {
+        // User command executed. Check for error
+        error = mUserCommandsError;
+    }
+
 
 exit:
+    if (OT_ERROR_NONE != error)
+    {
+        OutputResult(error);
+    }
     ClearOutputBuffer();
     return error;
 }
@@ -255,6 +267,7 @@ Error RPC::HandleCommand(void *        aContext,
                          uint8_t       aCommandsLength,
                          const Command aCommands[])
 {
+
     return otCRPCHandleCommand(aContext, aArgsLength, aArgs, aCommandsLength, aCommands);
 }
 
@@ -404,6 +417,11 @@ void RPC::SetUserCommands(const otCliCommand *aCommands, uint8_t aLength, void *
     mUserCommands        = aCommands;
     mUserCommandsLength  = aLength;
     mUserCommandsContext = aContext;
+}
+
+void RPC::SetUserCommandError(otError aError)
+{
+    mUserCommandsError = aError;
 }
 
 
