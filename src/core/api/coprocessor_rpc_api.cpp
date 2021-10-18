@@ -74,6 +74,11 @@ extern "C" void otCliAppendResult(otError aError)
     RPC::GetRPC().OutputResult(aError);
 }
 
+extern "C" void otCliSetUserCommandError(otError aError)
+{
+    RPC::GetRPC().SetUserCommandError(aError);
+}
+
 extern "C" void otCliOutputBytes(const uint8_t *aBytes, uint8_t aLength)
 {
     RPC::GetRPC().OutputBytes(aBytes, aLength);
