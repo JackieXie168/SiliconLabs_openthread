@@ -1307,9 +1307,7 @@ Error Mle::AppendAddressRegistration(Message &aMessage, AddressRegistrationMode 
 
     if (Get<ThreadNetif>().HasUnicastAddress(domainUnicastAddress))
     {
-        error = Get<NetworkData::Leader>().GetContext(domainUnicastAddress, context);
-
-        OT_ASSERT(error == kErrorNone);
+        SuccessOrAssert(Get<NetworkData::Leader>().GetContext(domainUnicastAddress, context));
 
         // Prioritize DUA, compressed entry
         entry.SetContextId(context.mContextId);
@@ -3165,7 +3163,7 @@ Error Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInfo &aMe
 
         // if received timestamp does not match the local value and message does not contain the dataset,
         // send MLE Data Request
-        if (!IsLeader() && ((timestamp == nullptr) || (timestamp->Compare(activeTimestamp) != 0)) &&
+        if (!IsLeader() && (MeshCoP::Timestamp::Compare(&activeTimestamp, timestamp) != 0) &&
             (Tlv::FindTlvOffset(aMessage, Tlv::kActiveDataset, activeDatasetOffset) != kErrorNone))
         {
             ExitNow(dataRequest = true);
@@ -3190,7 +3188,7 @@ Error Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInfo &aMe
 
         // if received timestamp does not match the local value and message does not contain the dataset,
         // send MLE Data Request
-        if (!IsLeader() && ((timestamp == nullptr) || (timestamp->Compare(pendingTimestamp) != 0)) &&
+        if (!IsLeader() && (MeshCoP::Timestamp::Compare(&pendingTimestamp, timestamp) != 0) &&
             (Tlv::FindTlvOffset(aMessage, Tlv::kPendingDataset, pendingDatasetOffset) != kErrorNone))
         {
             ExitNow(dataRequest = true);
@@ -3683,16 +3681,6 @@ void Mle::HandleChildIdResponse(const Message &         aMessage,
 
     SetLeaderData(leaderData.GetPartitionId(), leaderData.GetWeighting(), leaderData.GetLeaderRouterId());
 
-    if (!IsRxOnWhenIdle())
-    {
-        Get<DataPollSender>().SetAttachMode(false);
-        Get<MeshForwarder>().SetRxOnWhenIdle(false);
-    }
-    else
-    {
-        Get<MeshForwarder>().SetRxOnWhenIdle(true);
-    }
-
 #if OPENTHREAD_FTD
     if (IsFullThreadDevice())
     {
@@ -3720,6 +3708,16 @@ void Mle::HandleChildIdResponse(const Message &         aMessage,
                                                           aMessage, networkDataOffset));
 
     SetStateChild(shortAddress);
+
+    if (!IsRxOnWhenIdle())
+    {
+        Get<DataPollSender>().SetAttachMode(false);
+        Get<MeshForwarder>().SetRxOnWhenIdle(false);
+    }
+    else
+    {
+        Get<MeshForwarder>().SetRxOnWhenIdle(true);
+    }
 
 exit:
     LogProcessError(kTypeChildIdResponse, error);
@@ -3958,7 +3956,7 @@ void Mle::HandleAnnounce(const Message &aMessage, const Ip6::MessageInfo &aMessa
 
     localTimestamp = Get<MeshCoP::ActiveDataset>().GetTimestamp();
 
-    if (localTimestamp == nullptr || localTimestamp->Compare(timestamp) > 0)
+    if (MeshCoP::Timestamp::Compare(&timestamp, localTimestamp) > 0)
     {
         // No action is required if device is detached, and current
         // channel and pan-id match the values from the received MLE
@@ -3981,7 +3979,7 @@ void Mle::HandleAnnounce(const Message &aMessage, const Ip6::MessageInfo &aMessa
 
         otLogNoteMle("Delay processing Announce - channel %d, panid 0x%02x", channel, panId);
     }
-    else if (localTimestamp->Compare(timestamp) < 0)
+    else if (MeshCoP::Timestamp::Compare(&timestamp, localTimestamp) < 0)
     {
         SendAnnounce(channel);
 
@@ -4611,9 +4609,7 @@ void Mle::DelayedResponseMetadata::ReadFrom(const Message &aMessage)
 
 void Mle::DelayedResponseMetadata::RemoveFrom(Message &aMessage) const
 {
-    Error error = aMessage.SetLength(aMessage.GetLength() - sizeof(*this));
-    OT_ASSERT(error == kErrorNone);
-    OT_UNUSED_VARIABLE(error);
+    SuccessOrAssert(aMessage.SetLength(aMessage.GetLength() - sizeof(*this)));
 }
 
 } // namespace Mle
