@@ -102,7 +102,7 @@ int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 {
     const uint8_t panIndex = getPanIndex(iid);
     int16_t       entry    = -1;
-    uint16_t      checksum = aShortAddress + sPanId[iid];
+    uint16_t      checksum = aShortAddress + sPanId[panIndex];
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
     {
@@ -135,8 +135,8 @@ static int16_t findSrcMatchShortAvailEntry(uint8_t iid)
 
 static inline void addToSrcMatchShortIndirect(uint8_t iid, uint16_t entry, uint16_t aShortAddress)
 {
-    uint16_t      checksum = aShortAddress + sPanId[iid];
     const uint8_t panIndex = getPanIndex(iid);
+    uint16_t      checksum = aShortAddress + sPanId[panIndex];
 
     srcMatchShortEntry[panIndex][entry].checksum  = checksum;
     srcMatchShortEntry[panIndex][entry].allocated = true;
