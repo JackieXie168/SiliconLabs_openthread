@@ -332,8 +332,9 @@ otError Interpreter::ProcessUserCommands(Arg aArgs[])
             char *args[kMaxArgs];
 
             Arg::CopyArgsToStringArray(aArgs, args);
+            mUserCommandsError = OT_ERROR_NONE;
             mUserCommands[i].mCommand(mUserCommandsContext, Arg::GetArgsLength(aArgs) - 1, args + 1);
-            error = OT_ERROR_NONE;
+            error = mUserCommandsError;
             break;
         }
     }
@@ -346,6 +347,11 @@ void Interpreter::SetUserCommands(const otCliCommand *aCommands, uint8_t aLength
     mUserCommands        = aCommands;
     mUserCommandsLength  = aLength;
     mUserCommandsContext = aContext;
+}
+
+void Interpreter::SetUserCommandError(otError aError)
+{
+    mUserCommandsError = aError;
 }
 
 #if OPENTHREAD_FTD || OPENTHREAD_MTD
@@ -846,6 +852,22 @@ otError Interpreter::ProcessCcaThreshold(Arg aArgs[])
 exit:
     return error;
 }
+
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+otError Interpreter::ProcessCcm(Arg aArgs[])
+{
+    otError error = OT_ERROR_NONE;
+    bool    enable;
+
+    VerifyOrExit(!aArgs[0].IsEmpty(), error = OT_ERROR_INVALID_COMMAND);
+
+    SuccessOrExit(error = ParseEnableOrDisable(aArgs[1], enable));
+    otThreadSetCcmEnabled(GetInstancePtr(), enable);
+
+exit:
+    return error;
+}
+#endif
 
 otError Interpreter::ProcessChannel(Arg aArgs[])
 {
@@ -5014,6 +5036,11 @@ extern "C" void otCliInputLine(char *aBuf)
 extern "C" void otCliSetUserCommands(const otCliCommand *aUserCommands, uint8_t aLength, void *aContext)
 {
     Interpreter::GetInterpreter().SetUserCommands(aUserCommands, aLength, aContext);
+}
+
+extern "C" void otCliSetUserCommandError(otError aError)
+{
+    Interpreter::GetInterpreter().SetUserCommandError(aError);
 }
 
 extern "C" void otCliOutputBytes(const uint8_t *aBytes, uint8_t aLength)

@@ -62,6 +62,14 @@ extern "C" {
 void otCliAppendResult(otError aError);
 
 /**
+ * This method sets the user command error
+ *
+ * @param[in]  aError         An error
+ *
+ */
+void otCliSetUserCommandError(otError aError);
+
+/**
  * Call the corresponding handler for a command
  *
  * This function will look through @p aCommands to find a command that matches

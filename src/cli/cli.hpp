@@ -188,6 +188,14 @@ public:
      */
     void SetUserCommands(const otCliCommand *aCommands, uint8_t aLength, void *aContext);
 
+    /**
+     * This method sets the user command error
+     *
+     * @param[in]  aError         An error
+     *
+     */
+    void SetUserCommandError(otError aError);
+
     static constexpr uint8_t kLinkModeStringSize = sizeof("rdn"); ///< Size of string buffer for a MLE Link Mode.
 
     /**
@@ -326,6 +334,9 @@ private:
     // Process methods only on FTD/MTD
 #if OPENTHREAD_FTD || OPENTHREAD_MTD
     otError ProcessCcaThreshold(Arg aArgs[]);
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+    otError ProcessCcm(Arg aArgs[]);
+#endif
     otError ProcessBufferInfo(Arg aArgs[]);
     otError ProcessChannel(Arg aArgs[]);
 #if OPENTHREAD_CONFIG_BORDER_AGENT_ENABLE
@@ -673,6 +684,9 @@ private:
 #endif
         {"bufferinfo", &Interpreter::ProcessBufferInfo},
         {"ccathreshold", &Interpreter::ProcessCcaThreshold},
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+        {"ccm", &Interpreter::ProcessCcm},
+#endif
         {"channel", &Interpreter::ProcessChannel},
 #if OPENTHREAD_FTD
         {"child", &Interpreter::ProcessChild},
@@ -864,6 +878,7 @@ private:
     const otCliCommand *mUserCommands;
     uint8_t             mUserCommandsLength;
     void *              mUserCommandsContext;
+    otError             mUserCommandsError;
     bool                mCommandIsPending;
 
     TimerMilliContext mTimer;

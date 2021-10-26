@@ -155,6 +155,14 @@ public:
     void SetUserCommands(const Command aCommands[], uint8_t aLength, void *aContext);
 
     /**
+     * This method sets the user command error
+     *
+     * @param[in]  aError         An error
+     *
+     */
+    void SetUserCommandError(otError aError);
+
+    /**
      * Write a number of bytes to the output buffer as a hex string.
      *
      * @param[in]  aBytes   A pointer to data which should be printed.
@@ -317,6 +325,7 @@ private:
 #if OPENTHREAD_COPROCESSOR
     const Command *mUserCommands;
     void *         mUserCommandsContext;
+    otError        mUserCommandsError;
     uint8_t        mUserCommandsLength;
 #else
     static Arg     mCachedCommands[kMaxCommands];
