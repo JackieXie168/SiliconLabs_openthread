@@ -194,7 +194,7 @@ private:
 
     enum
     {
-        kMaxFrameSize = 2048,
+        kMaxFrameSize = SL_CPC_READ_MINIMUM_SIZE,
         kMaxWaitTime  = 2000, ///< Maximum wait time in Milliseconds for socket to become writable (see `SendFrame`).
         kResetCMDSize = 4
     };
