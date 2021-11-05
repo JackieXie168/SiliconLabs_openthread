@@ -253,7 +253,6 @@ set(RADIO_COMMON_SOURCES
     crypto/aes_ccm.cpp
     crypto/aes_ecb.cpp
     crypto/crypto_platform.cpp
-    crypto/hmac_sha256.cpp
     crypto/storage.cpp
     diags/factory_diags.cpp
     mac/link_raw.cpp
