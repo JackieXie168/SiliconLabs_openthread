@@ -40,12 +40,15 @@
 #include <string.h>
 
 #include "common/logging.hpp"
+#include "common/debug.hpp"
 #include "utils/code_utils.h"
 
 #if OPENTHREAD_RADIO && OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE == 1
 extern uint8_t        otNcpPlatGetCurCommandIid(void);
 static inline uint8_t getPanIndex(uint8_t iid)
 {
+    // Assert if iid=0 (broadcast iid)
+    OT_ASSERT(iid != 0);
     return (iid) ? (iid - 1) : 0;
 }
 #else
