@@ -62,6 +62,7 @@ static inline uint8_t getPanIndex(uint8_t iid)
 #if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 static uint16_t sPanId[RADIO_CONFIG_SRC_MATCH_PANID_NUM] = {0};
 
+#if PRINT_MULTIPAN_SOURCE_MATCH_TABLES
 static void printPanIdTable(void)
 {
     for (uint8_t panIndex = 0; panIndex < RADIO_CONFIG_SRC_MATCH_PANID_NUM; panIndex++)
@@ -69,12 +70,16 @@ static void printPanIdTable(void)
         otLogDebgPlat("sPanId[panIndex=%d] = 0x%04x", panIndex, sPanId[panIndex]);
     }
 }
+#else
+#define printPanIdTable()
+#endif
 
 void utilsSoftSrcMatchSetPanId(uint8_t iid, uint16_t aPanId)
 {
     const uint8_t panIndex = getPanIndex(iid);
     sPanId[panIndex]       = aPanId;
     otLogInfoPlat("Setting panIndex=%d to 0x%04x", panIndex, aPanId);
+
     printPanIdTable();
 }
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
