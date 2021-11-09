@@ -43,6 +43,9 @@
 #include "common/debug.hpp"
 #include "utils/code_utils.h"
 
+// Print entire source match tables when
+#define PRINT_MULTIPAN_SOURCE_MATCH_TABLES 1
+
 #if OPENTHREAD_RADIO && OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE == 1
 extern uint8_t        otNcpPlatGetCurCommandIid(void);
 static inline uint8_t getPanIndex(uint8_t iid)
@@ -85,6 +88,7 @@ typedef struct srcMatchShortEntry
 
 static sSrcMatchShortEntry srcMatchShortEntry[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM];
 
+#if PRINT_MULTIPAN_SOURCE_MATCH_TABLES
 static void printShortEntryTable(uint8_t iid)
 {
     const uint8_t panIndex = getPanIndex(iid);
@@ -100,6 +104,9 @@ static void printShortEntryTable(uint8_t iid)
     }
     otLogDebgPlat("================================|============|===========");
 }
+#else
+#define printShortEntryTable(iid)
+#endif
 
 int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 {
@@ -144,6 +151,8 @@ static inline void addToSrcMatchShortIndirect(uint8_t iid, uint16_t entry, uint1
     srcMatchShortEntry[panIndex][entry].checksum  = checksum;
     srcMatchShortEntry[panIndex][entry].allocated = true;
     otLogDebgPlat("Adding short: iid=%d, entry=%d, addr 0x%04x", iid, entry, aShortAddress);
+
+    printShortEntryTable(iid);
 }
 
 static inline void removeFromSrcMatchShortIndirect(uint8_t iid, uint16_t entry)
@@ -153,6 +162,8 @@ static inline void removeFromSrcMatchShortIndirect(uint8_t iid, uint16_t entry)
     srcMatchShortEntry[panIndex][entry].allocated = false;
     srcMatchShortEntry[panIndex][entry].checksum  = 0;
     otLogDebgPlat("Removing short: iid=%d, entry=%d", iid, entry);
+
+    printShortEntryTable(iid);
 }
 
 otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, uint16_t aShortAddress)
@@ -207,6 +218,8 @@ void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
     otLogDebgPlat("Clear ShortAddr entries (iid: %d)", iid);
 
     memset(srcMatchShortEntry[panIndex], 0, sizeof(srcMatchShortEntry[panIndex]));
+
+    printShortEntryTable(iid);
 }
 #endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
 
@@ -219,6 +232,7 @@ typedef struct srcMatchExtEntry
 
 static sSrcMatchExtEntry srcMatchExtEntry[RADIO_CONFIG_SRC_MATCH_PANID_NUM][RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM];
 
+#if PRINT_MULTIPAN_SOURCE_MATCH_TABLES
 static void printExtEntryTable(uint8_t iid)
 {
     const uint8_t panIndex = getPanIndex(iid);
@@ -234,6 +248,9 @@ static void printExtEntryTable(uint8_t iid)
     }
     otLogDebgPlat("==============================|============|===========");
 }
+#else
+#define printExtEntryTable(iid)
+#endif
 
 int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddress)
 {
@@ -288,6 +305,8 @@ static inline void addToSrcMatchExtIndirect(uint8_t iid, uint16_t entry, const o
     srcMatchExtEntry[panIndex][entry].checksum  = checksum;
     srcMatchExtEntry[panIndex][entry].allocated = true;
     otLogDebgPlat("Adding Ext: iid=%d, entry=%d, addr 0x%016x", iid, entry, aExtAddress->m8);
+
+    printExtEntryTable(iid);
 }
 
 static inline void removeFromSrcMatchExtIndirect(uint8_t iid, uint16_t entry)
@@ -297,6 +316,8 @@ static inline void removeFromSrcMatchExtIndirect(uint8_t iid, uint16_t entry)
     srcMatchExtEntry[panIndex][entry].allocated = false;
     srcMatchExtEntry[panIndex][entry].checksum  = 0;
     otLogDebgPlat("Clearing Ext: iid=%d, entry=%d", iid, entry);
+
+    printExtEntryTable(iid);
 }
 
 otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
@@ -347,5 +368,7 @@ void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
     const uint8_t panIndex = getPanIndex(iid);
 
     memset(srcMatchExtEntry[panIndex], 0, sizeof(srcMatchExtEntry[panIndex]));
+
+    printExtEntryTable(iid);
 }
 #endif // RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
