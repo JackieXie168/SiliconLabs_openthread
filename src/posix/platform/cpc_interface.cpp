@@ -169,7 +169,7 @@ otError CpcInterface::Write(const uint8_t *aFrame, uint16_t aLength)
 
     // We are catching the SPINEL reset command and returning
     // a SPINEL reset response immediately
-    if(aLength == 2 && SPINEL_HEADER_GET_TID(*aFrame) == 0 &&
+    if(SPINEL_HEADER_GET_TID(*aFrame) == 0 &&
         *(aFrame + 1) == SPINEL_CMD_RESET)
     {
         SendResetResponse();
