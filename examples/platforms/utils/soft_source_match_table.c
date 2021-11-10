@@ -44,7 +44,7 @@
 #include "utils/code_utils.h"
 
 // Print entire source match tables when
-#define PRINT_MULTIPAN_SOURCE_MATCH_TABLES 1
+#define PRINT_MULTIPAN_SOURCE_MATCH_TABLES 0
 
 #if OPENTHREAD_RADIO && OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE == 1
 extern uint8_t        otNcpPlatGetCurCommandIid(void);
@@ -52,7 +52,7 @@ static inline uint8_t getPanIndex(uint8_t iid)
 {
     // Assert if iid=0 (broadcast iid)
     OT_ASSERT(iid != 0);
-    return (iid) ? (iid - 1) : 0;
+    return iid - 1;
 }
 #else
 #define otNcpPlatGetCurCommandIid() 0
@@ -155,7 +155,6 @@ static inline void addToSrcMatchShortIndirect(uint8_t iid, uint16_t entry, uint1
 
     srcMatchShortEntry[panIndex][entry].checksum  = checksum;
     srcMatchShortEntry[panIndex][entry].allocated = true;
-    otLogDebgPlat("Adding short: iid=%d, entry=%d, addr 0x%04x", iid, entry, aShortAddress);
 
     printShortEntryTable(iid);
 }
@@ -166,7 +165,6 @@ static inline void removeFromSrcMatchShortIndirect(uint8_t iid, uint16_t entry)
 
     srcMatchShortEntry[panIndex][entry].allocated = false;
     srcMatchShortEntry[panIndex][entry].checksum  = 0;
-    otLogDebgPlat("Removing short: iid=%d, entry=%d", iid, entry);
 
     printShortEntryTable(iid);
 }
@@ -309,7 +307,6 @@ static inline void addToSrcMatchExtIndirect(uint8_t iid, uint16_t entry, const o
 
     srcMatchExtEntry[panIndex][entry].checksum  = checksum;
     srcMatchExtEntry[panIndex][entry].allocated = true;
-    otLogDebgPlat("Adding Ext: iid=%d, entry=%d, addr 0x%016x", iid, entry, aExtAddress->m8);
 
     printExtEntryTable(iid);
 }
@@ -320,7 +317,6 @@ static inline void removeFromSrcMatchExtIndirect(uint8_t iid, uint16_t entry)
 
     srcMatchExtEntry[panIndex][entry].allocated = false;
     srcMatchExtEntry[panIndex][entry].checksum  = 0;
-    otLogDebgPlat("Clearing Ext: iid=%d, entry=%d", iid, entry);
 
     printExtEntryTable(iid);
 }
