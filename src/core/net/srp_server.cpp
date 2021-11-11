@@ -263,7 +263,7 @@ void Server::AddHost(Host &aHost)
     IgnoreError(mHosts.Add(aHost));
 }
 
-void Server::RemoveHost(Host *aHost, bool aRetainName, bool aNotifyServiceHandler)
+void Server::RemoveHost(Host *aHost, RetainName aRetainName, NotifyMode aNotifyServiceHandler)
 {
     VerifyOrExit(aHost != nullptr);
 
@@ -400,16 +400,16 @@ void Server::CommitSrpUpdate(Error                    aError,
         if (aHost.GetKeyLease() == 0)
         {
             otLogInfoSrp("[server] remove key of host %s", aHost.GetFullName());
-            RemoveHost(existingHost, /* aRetainName */ false, /* aNotifyServiceHandler */ false);
+            RemoveHost(existingHost, kDeleteName, kDoNotNotifyServiceHandler);
         }
         else if (existingHost != nullptr)
         {
             existingHost->SetKeyLease(aHost.GetKeyLease());
-            RemoveHost(existingHost, /* aRetainName */ true, /* aNotifyServiceHandler */ false);
+            RemoveHost(existingHost, kRetainName, kDoNotNotifyServiceHandler);
 
             for (Service &service : existingHost->mServices)
             {
-                existingHost->RemoveService(&service, /* aRetainName */ true, /* aNotifyServiceHandler */ false);
+                existingHost->RemoveService(&service, kRetainName, kDoNotNotifyServiceHandler);
             }
         }
     }
@@ -583,7 +583,7 @@ void Server::Stop(void)
 
     while (!mHosts.IsEmpty())
     {
-        RemoveHost(mHosts.GetHead(), /* aRetainName */ false, /* aNotifyServiceHandler */ true);
+        RemoveHost(mHosts.GetHead(), kDeleteName, kNotifyServiceHandler);
     }
 
     // TODO: We should cancel any outstanding service updates, but current
@@ -1307,7 +1307,7 @@ void Server::HandleLeaseTimer(void)
             otLogInfoSrp("[server] KEY LEASE of host %s expired", host->GetFullName());
 
             // Removes the whole host and all services if the KEY RR expired.
-            RemoveHost(host, /* aRetainName */ false, /* aNotifyServiceHandler */ true);
+            RemoveHost(host, kDeleteName, kNotifyServiceHandler);
         }
         else if (host->IsDeleted())
         {
@@ -1327,7 +1327,7 @@ void Server::HandleLeaseTimer(void)
                 if (service->GetKeyExpireTime() <= now)
                 {
                     service->Log(Service::kKeyLeaseExpired);
-                    host->RemoveService(service, /* aRetainName */ false, /* aNotifyServiceHandler */ true);
+                    host->RemoveService(service, kDeleteName, kNotifyServiceHandler);
                 }
                 else
                 {
@@ -1343,10 +1343,10 @@ void Server::HandleLeaseTimer(void)
             for (Service &service : host->mServices)
             {
                 // Don't need to notify the service handler as `RemoveHost` at below will do.
-                host->RemoveService(&service, /* aRetainName */ true, /* aNotifyServiceHandler */ false);
+                host->RemoveService(&service, kRetainName, kDoNotNotifyServiceHandler);
             }
 
-            RemoveHost(host, /* aRetainName */ true, /* aNotifyServiceHandler */ true);
+            RemoveHost(host, kRetainName, kNotifyServiceHandler);
 
             earliestExpireTime = OT_MIN(earliestExpireTime, host->GetKeyExpireTime());
         }
@@ -1367,7 +1367,7 @@ void Server::HandleLeaseTimer(void)
                 if (service->GetKeyExpireTime() <= now)
                 {
                     service->Log(Service::kKeyLeaseExpired);
-                    host->RemoveService(service, /* aRetainName */ false, /* aNotifyServiceHandler */ true);
+                    host->RemoveService(service, kDeleteName, kNotifyServiceHandler);
                 }
                 else if (service->mIsDeleted)
                 {
@@ -1379,7 +1379,7 @@ void Server::HandleLeaseTimer(void)
                     service->Log(Service::kLeaseExpired);
 
                     // The service is expired, delete it.
-                    host->RemoveService(service, /* aRetainName */ true, /* aNotifyServiceHandler */ true);
+                    host->RemoveService(service, kRetainName, kNotifyServiceHandler);
                     earliestExpireTime = OT_MIN(earliestExpireTime, service->GetKeyExpireTime());
                 }
                 else
@@ -1703,7 +1703,6 @@ void Server::Host::Free(void)
 
 Server::Host::Host(Instance &aInstance)
     : InstanceLocator(aInstance)
-    , mAddressesNum(0)
     , mNext(nullptr)
     , mLease(0)
     , mKeyLease(0)
@@ -1804,7 +1803,7 @@ exit:
     return service;
 }
 
-void Server::Host::RemoveService(Service *aService, bool aRetainName, bool aNotifyServiceHandler)
+void Server::Host::RemoveService(Service *aService, RetainName aRetainName, NotifyMode aNotifyServiceHandler)
 {
     Server &server = Get<Server>();
 
@@ -1842,7 +1841,7 @@ void Server::Host::FreeAllServices(void)
 {
     while (!mServices.IsEmpty())
     {
-        RemoveService(mServices.GetHead(), /* aRetainName */ false, /* aNotifyServiceHandler */ false);
+        RemoveService(mServices.GetHead(), kDeleteName, kDoNotNotifyServiceHandler);
     }
 }
 
@@ -1874,7 +1873,7 @@ void Server::Host::FreeUnusedServiceDescriptions(void)
 
 void Server::Host::ClearResources(void)
 {
-    mAddressesNum = 0;
+    mAddresses.Clear();
 }
 
 Error Server::Host::MergeServicesAndResourcesFrom(Host &aHost)
@@ -1887,8 +1886,7 @@ Error Server::Host::MergeServicesAndResourcesFrom(Host &aHost)
 
     otLogInfoSrp("[server] update host %s", GetFullName());
 
-    memcpy(mAddresses, aHost.mAddresses, aHost.mAddressesNum * sizeof(mAddresses[0]));
-    mAddressesNum   = aHost.mAddressesNum;
+    mAddresses      = aHost.mAddresses;
     mKey            = aHost.mKey;
     mLease          = aHost.mLease;
     mKeyLease       = aHost.mKeyLease;
@@ -1902,7 +1900,7 @@ Error Server::Host::MergeServicesAndResourcesFrom(Host &aHost)
         if (service.mIsDeleted)
         {
             // `RemoveService()` does nothing if `exitsingService` is `nullptr`.
-            RemoveService(existingService, /* aRetainName */ true, /* aNotifyServiceHandler */ false);
+            RemoveService(existingService, kRetainName, kDoNotNotifyServiceHandler);
             continue;
         }
 
@@ -1964,22 +1962,15 @@ Error Server::Host::AddIp6Address(const Ip6::Address &aIp6Address)
         ExitNow(error = kErrorDrop);
     }
 
-    for (const Ip6::Address &addr : mAddresses)
-    {
-        if (aIp6Address == addr)
-        {
-            // Drop duplicate addresses.
-            ExitNow(error = kErrorDrop);
-        }
-    }
+    // Drop duplicate addresses.
+    VerifyOrExit(!mAddresses.Contains(aIp6Address), error = kErrorDrop);
 
-    if (mAddressesNum >= kMaxAddressesNum)
+    error = mAddresses.PushBack(aIp6Address);
+
+    if (error == kErrorNoBufs)
     {
         otLogWarnSrp("[server] too many addresses for host %s", GetFullName());
-        ExitNow(error = kErrorNoBufs);
     }
-
-    mAddresses[mAddressesNum++] = aIp6Address;
 
 exit:
     return error;
