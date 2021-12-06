@@ -120,8 +120,16 @@ int16_t utilsSoftSrcMatchShortFindEntry(uint8_t iid, uint16_t aShortAddress)
 {
     OT_UNUSED_VARIABLE(iid);
 
+    int16_t entry    = -1;
+
+#if OPENTHREAD_RADIO && OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE == 1
+    if (iid == 0)
+    {
+        return entry;
+    }
+#endif
+
     const uint8_t panIndex = getPanIndex(iid);
-    int16_t       entry    = -1;
     uint16_t      checksum = aShortAddress + sPanId[panIndex];
 
     for (int16_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
@@ -272,7 +280,15 @@ int16_t utilsSoftSrcMatchExtFindEntry(uint8_t iid, const otExtAddress *aExtAddre
 {
     OT_UNUSED_VARIABLE(iid);
 
-    int16_t       entry    = -1;
+    int16_t entry    = -1;
+
+#if OPENTHREAD_RADIO && OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE == 1
+    if (iid == 0)
+    {
+        return entry;
+    }
+#endif
+    
     const uint8_t panIndex = getPanIndex(iid);
     uint16_t      checksum = sPanId[panIndex];
 
