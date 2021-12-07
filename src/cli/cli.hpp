@@ -336,6 +336,7 @@ private:
     otError ProcessCcaThreshold(Arg aArgs[]);
 #if OPENTHREAD_FTD && OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
     otError ProcessCcm(Arg aArgs[]);
+    otError ProcessThreadVersionCheck(Arg aArgs[]);
 #endif
     otError ProcessBufferInfo(Arg aArgs[]);
     otError ProcessChannel(Arg aArgs[]);
@@ -522,6 +523,7 @@ private:
     otError ProcessPskcRef(Arg aArgs[]);
 #endif
 #endif
+    otError ProcessRadioFilter(Arg aArgs[]);
     otError ProcessRcp(Arg aArgs[]);
     otError ProcessRegion(Arg aArgs[]);
 #if OPENTHREAD_FTD
@@ -828,6 +830,9 @@ private:
         {"pskcref", &Interpreter::ProcessPskcRef},
 #endif
 #endif
+#if OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
+        {"radiofilter", &Interpreter::ProcessRadioFilter},
+#endif
         {"rcp", &Interpreter::ProcessRcp},
         {"region", &Interpreter::ProcessRegion},
 #if OPENTHREAD_FTD
@@ -868,6 +873,9 @@ private:
         {"thread", &Interpreter::ProcessThread},
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
         {"trel", &Interpreter::ProcessTrel},
+#endif
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+        {"tvcheck", &Interpreter::ProcessThreadVersionCheck},
 #endif
         {"txpower", &Interpreter::ProcessTxPower},
         {"udp", &Interpreter::ProcessUdp},
