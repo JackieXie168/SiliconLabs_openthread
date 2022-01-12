@@ -94,6 +94,7 @@ set(COMMON_SOURCES
     coap/coap_message.cpp
     coap/coap_secure.cpp
     common/appender.cpp
+    common/binary_search.cpp
     common/crc16.cpp
     common/data.cpp
     common/error.cpp
@@ -228,7 +229,6 @@ set(COMMON_SOURCES
     utils/heap.cpp
     utils/history_tracker.cpp
     utils/jam_detector.cpp
-    utils/lookup_table.cpp
     utils/otns.cpp
     utils/parse_cmdline.cpp
     utils/ping_sender.cpp
@@ -245,6 +245,7 @@ set(RADIO_COMMON_SOURCES
     api/logging_api.cpp
     api/random_noncrypto_api.cpp
     api/tasklet_api.cpp
+    common/binary_search.cpp
     common/error.cpp
     common/instance.cpp
     common/logging.cpp
@@ -268,7 +269,6 @@ set(RADIO_COMMON_SOURCES
     radio/radio_callbacks.cpp
     radio/radio_platform.cpp
     thread/link_quality.cpp
-    utils/lookup_table.cpp
     utils/parse_cmdline.cpp
 )
 
