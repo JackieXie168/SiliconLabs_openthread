@@ -244,19 +244,16 @@ otError Interpreter::ProcessVersion(Arg aArgs[])
     if (aArgs[0].IsEmpty())
     {
         OutputLine("%s", otGetVersionString());
-        ExitNow();
     }
-
-    if (aArgs[0] == "api")
+    else if (aArgs[0] == "api")
     {
         OutputLine("%d", OPENTHREAD_API_VERSION);
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
 
@@ -478,13 +475,12 @@ otError Interpreter::ProcessBorderAgent(Arg aArgs[])
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
-#endif
+#endif // OPENTHREAD_CONFIG_BORDER_AGENT_ENABLE
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
 otError Interpreter::ProcessBorderRouting(Arg aArgs[])
@@ -510,15 +506,24 @@ otError Interpreter::ProcessBorderRouting(Arg aArgs[])
         SuccessOrExit(error = otBorderRoutingGetOnLinkPrefix(GetInstancePtr(), &onLinkPrefix));
         OutputIp6PrefixLine(onLinkPrefix);
     }
+#if OPENTHREAD_CONFIG_BORDER_ROUTING_NAT64_ENABLE
+    else if (aArgs[0] == "nat64prefix")
+    {
+        otIp6Prefix nat64Prefix;
+
+        SuccessOrExit(error = otBorderRoutingGetNat64Prefix(GetInstancePtr(), &nat64Prefix));
+        OutputIp6PrefixLine(nat64Prefix);
+    }
+#endif // OPENTHREAD_CONFIG_BORDER_ROUTING_NAT64_ENABLE
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
 exit:
     return error;
 }
-#endif
+#endif // OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
 
 #if (OPENTHREAD_CONFIG_THREAD_VERSION >= OT_THREAD_VERSION_1_2)
 otError Interpreter::ProcessBackboneRouter(Arg aArgs[])
@@ -580,6 +585,13 @@ otError Interpreter::ProcessBackboneRouter(Arg aArgs[])
             }
 #endif
         }
+#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+        else if (aArgs[0] == "skipseqnuminc")
+        {
+            otBackboneRouterConfigSkipSeqNumIncrease(GetInstancePtr(), true);
+            ExitNow();
+        }
+#endif
         SuccessOrExit(error = ProcessBackboneRouterLocal(aArgs));
     }
 
@@ -1259,7 +1271,7 @@ otError Interpreter::ProcessCoexMetrics(Arg aArgs[])
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_ARGS);
+        error = OT_ERROR_INVALID_ARGS;
     }
 
 exit:
@@ -1351,7 +1363,7 @@ otError Interpreter::ProcessCounters(Arg aArgs[])
         }
         else
         {
-            ExitNow(error = OT_ERROR_INVALID_ARGS);
+            error = OT_ERROR_INVALID_ARGS;
         }
     }
     else if (aArgs[0] == "mle")
@@ -1389,7 +1401,7 @@ otError Interpreter::ProcessCounters(Arg aArgs[])
         }
         else
         {
-            ExitNow(error = OT_ERROR_INVALID_ARGS);
+            error = OT_ERROR_INVALID_ARGS;
         }
     }
     else if (aArgs[0] == "ip")
@@ -1422,15 +1434,14 @@ otError Interpreter::ProcessCounters(Arg aArgs[])
         }
         else
         {
-            ExitNow(error = OT_ERROR_INVALID_ARGS);
+            error = OT_ERROR_INVALID_ARGS;
         }
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_ARGS);
+        error = OT_ERROR_INVALID_ARGS;
     }
 
-exit:
     return error;
 }
 
@@ -1438,7 +1449,6 @@ exit:
 otError Interpreter::ProcessCsl(Arg aArgs[])
 {
     otError error = OT_ERROR_NONE;
-    ;
 
     if (aArgs[0].IsEmpty())
     {
@@ -1485,7 +1495,7 @@ otError Interpreter::ProcessDelayTimerMin(Arg aArgs[])
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_ARGS);
+        error = OT_ERROR_INVALID_ARGS;
     }
 
 exit:
@@ -2095,42 +2105,40 @@ otError Interpreter::ProcessIpAddr(Arg aArgs[])
         for (const otNetifAddress *addr = unicastAddrs; addr; addr = addr->mNext)
         {
             OutputIp6Address(addr->mAddress);
+
             if (verbose)
             {
                 OutputFormat(" origin:%s", AddressOriginToString(addr->mAddressOrigin));
             }
+
             OutputLine("");
         }
     }
+    else if (aArgs[0] == "add")
+    {
+        error = ProcessIpAddrAdd(aArgs + 1);
+    }
+    else if (aArgs[0] == "del")
+    {
+        error = ProcessIpAddrDel(aArgs + 1);
+    }
+    else if (aArgs[0] == "linklocal")
+    {
+        OutputIp6AddressLine(*otThreadGetLinkLocalIp6Address(GetInstancePtr()));
+    }
+    else if (aArgs[0] == "rloc")
+    {
+        OutputIp6AddressLine(*otThreadGetRloc(GetInstancePtr()));
+    }
+    else if (aArgs[0] == "mleid")
+    {
+        OutputIp6AddressLine(*otThreadGetMeshLocalEid(GetInstancePtr()));
+    }
     else
     {
-        if (aArgs[0] == "add")
-        {
-            SuccessOrExit(error = ProcessIpAddrAdd(aArgs + 1));
-        }
-        else if (aArgs[0] == "del")
-        {
-            SuccessOrExit(error = ProcessIpAddrDel(aArgs + 1));
-        }
-        else if (aArgs[0] == "linklocal")
-        {
-            OutputIp6AddressLine(*otThreadGetLinkLocalIp6Address(GetInstancePtr()));
-        }
-        else if (aArgs[0] == "rloc")
-        {
-            OutputIp6AddressLine(*otThreadGetRloc(GetInstancePtr()));
-        }
-        else if (aArgs[0] == "mleid")
-        {
-            OutputIp6AddressLine(*otThreadGetMeshLocalEid(GetInstancePtr()));
-        }
-        else
-        {
-            ExitNow(error = OT_ERROR_INVALID_COMMAND);
-        }
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
 
@@ -2198,35 +2206,31 @@ otError Interpreter::ProcessIpMulticastAddr(Arg aArgs[])
             OutputIp6AddressLine(addr->mAddress);
         }
     }
+    else if (aArgs[0] == "add")
+    {
+        error = ProcessIpMulticastAddrAdd(aArgs + 1);
+    }
+    else if (aArgs[0] == "del")
+    {
+        error = ProcessIpMulticastAddrDel(aArgs + 1);
+    }
+    else if (aArgs[0] == "promiscuous")
+    {
+        error = ProcessMulticastPromiscuous(aArgs + 1);
+    }
+    else if (aArgs[0] == "llatn")
+    {
+        OutputIp6AddressLine(*otThreadGetLinkLocalAllThreadNodesMulticastAddress(GetInstancePtr()));
+    }
+    else if (aArgs[0] == "rlatn")
+    {
+        OutputIp6AddressLine(*otThreadGetRealmLocalAllThreadNodesMulticastAddress(GetInstancePtr()));
+    }
     else
     {
-        if (aArgs[0] == "add")
-        {
-            SuccessOrExit(error = ProcessIpMulticastAddrAdd(aArgs + 1));
-        }
-        else if (aArgs[0] == "del")
-        {
-            SuccessOrExit(error = ProcessIpMulticastAddrDel(aArgs + 1));
-        }
-        else if (aArgs[0] == "promiscuous")
-        {
-            SuccessOrExit(error = ProcessMulticastPromiscuous(aArgs + 1));
-        }
-        else if (aArgs[0] == "llatn")
-        {
-            OutputIp6AddressLine(*otThreadGetLinkLocalAllThreadNodesMulticastAddress(GetInstancePtr()));
-        }
-        else if (aArgs[0] == "rlatn")
-        {
-            OutputIp6AddressLine(*otThreadGetRealmLocalAllThreadNodesMulticastAddress(GetInstancePtr()));
-        }
-        else
-        {
-            ExitNow(error = OT_ERROR_INVALID_COMMAND);
-        }
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
 
@@ -2671,18 +2675,15 @@ exit:
 otError Interpreter::ProcessPskc(Arg aArgs[])
 {
     otError error = OT_ERROR_NONE;
+    otPskc  pskc;
 
     if (aArgs[0].IsEmpty())
     {
-        otPskc pskc;
-
         otThreadGetPskc(GetInstancePtr(), &pskc);
         OutputBytesLine(pskc.m8);
     }
     else
     {
-        otPskc pskc;
-
         if (aArgs[1].IsEmpty())
         {
             SuccessOrExit(error = aArgs[0].ParseAsHexString(pskc.m8));
@@ -2699,7 +2700,7 @@ otError Interpreter::ProcessPskc(Arg aArgs[])
             ExitNow(error = OT_ERROR_INVALID_ARGS);
         }
 
-        SuccessOrExit(error = otThreadSetPskc(GetInstancePtr(), &pskc));
+        error = otThreadSetPskc(GetInstancePtr(), &pskc);
     }
 
 exit:
@@ -2728,7 +2729,7 @@ otError Interpreter::ProcessPskcRef(Arg aArgs[])
             ExitNow(error = OT_ERROR_INVALID_ARGS);
         }
 
-        SuccessOrExit(error = otThreadSetPskcRef(GetInstancePtr(), pskcRef));
+        error = otThreadSetPskcRef(GetInstancePtr(), pskcRef);
     }
 
 exit:
@@ -3286,7 +3287,7 @@ otError Interpreter::ProcessRouterIdRange(Arg *aArgs)
         SuccessOrExit(error = aArgs[0].ParseAsUint8(minRouterId));
         SuccessOrExit(error = aArgs[1].ParseAsUint8(maxRouterId));
         VerifyOrExit(aArgs[2].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
-        SuccessOrExit(error = otThreadSetRouterIdRange(GetInstancePtr(), minRouterId, maxRouterId));
+        error = otThreadSetRouterIdRange(GetInstancePtr(), minRouterId, maxRouterId);
     }
 
 exit:
@@ -3680,15 +3681,15 @@ otError Interpreter::ProcessPrefix(Arg aArgs[])
 
     if (aArgs[0].IsEmpty())
     {
-        SuccessOrExit(error = ProcessPrefixList());
+        error = ProcessPrefixList();
     }
     else if (aArgs[0] == "add")
     {
-        SuccessOrExit(error = ProcessPrefixAdd(aArgs + 1));
+        error = ProcessPrefixAdd(aArgs + 1);
     }
     else if (aArgs[0] == "remove")
     {
-        SuccessOrExit(error = ProcessPrefixRemove(aArgs + 1));
+        error = ProcessPrefixRemove(aArgs + 1);
     }
     else if (aArgs[0] == "meshlocal")
     {
@@ -3696,10 +3697,9 @@ otError Interpreter::ProcessPrefix(Arg aArgs[])
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
 #endif // OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
@@ -3878,22 +3878,21 @@ otError Interpreter::ProcessRoute(Arg aArgs[])
 
     if (aArgs[0].IsEmpty())
     {
-        SuccessOrExit(error = ProcessRouteList());
+        error = ProcessRouteList();
     }
     else if (aArgs[0] == "add")
     {
-        SuccessOrExit(error = ProcessRouteAdd(aArgs + 1));
+        error = ProcessRouteAdd(aArgs + 1);
     }
     else if (aArgs[0] == "remove")
     {
-        SuccessOrExit(error = ProcessRouteRemove(aArgs + 1));
+        error = ProcessRouteRemove(aArgs + 1);
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
 #endif // OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
@@ -4137,14 +4136,7 @@ otError Interpreter::ProcessSingleton(Arg aArgs[])
 {
     OT_UNUSED_VARIABLE(aArgs);
 
-    if (otThreadIsSingleton(GetInstancePtr()))
-    {
-        OutputLine("true");
-    }
-    else
-    {
-        OutputLine("false");
-    }
+    OutputLine(otThreadIsSingleton(GetInstancePtr()) ? "true" : "false");
 
     return OT_ERROR_NONE;
 }
@@ -4263,34 +4255,29 @@ otError Interpreter::ProcessState(Arg aArgs[])
     {
         OutputLine("%s", otThreadDeviceRoleToString(otThreadGetDeviceRole(GetInstancePtr())));
     }
+    else if (aArgs[0] == "detached")
+    {
+        error = otThreadBecomeDetached(GetInstancePtr());
+    }
+    else if (aArgs[0] == "child")
+    {
+        error = otThreadBecomeChild(GetInstancePtr());
+    }
+#if OPENTHREAD_FTD
+    else if (aArgs[0] == "router")
+    {
+        error = otThreadBecomeRouter(GetInstancePtr());
+    }
+    else if (aArgs[0] == "leader")
+    {
+        error = otThreadBecomeLeader(GetInstancePtr());
+    }
+#endif
     else
     {
-        if (aArgs[0] == "detached")
-        {
-            SuccessOrExit(error = otThreadBecomeDetached(GetInstancePtr()));
-        }
-        else if (aArgs[0] == "child")
-        {
-            SuccessOrExit(error = otThreadBecomeChild(GetInstancePtr()));
-        }
-
-#if OPENTHREAD_FTD
-        else if (aArgs[0] == "router")
-        {
-            SuccessOrExit(error = otThreadBecomeRouter(GetInstancePtr()));
-        }
-        else if (aArgs[0] == "leader")
-        {
-            SuccessOrExit(error = otThreadBecomeLeader(GetInstancePtr()));
-        }
-#endif
-        else
-        {
-            ExitNow(error = OT_ERROR_INVALID_ARGS);
-        }
+        error = OT_ERROR_INVALID_ARGS;
     }
 
-exit:
     return error;
 }
 
@@ -4336,7 +4323,7 @@ otError Interpreter::ProcessTxPower(Arg aArgs[])
     else
     {
         SuccessOrExit(error = aArgs[0].ParseAsInt8(power));
-        SuccessOrExit(error = otPlatRadioSetTransmitPower(GetInstancePtr(), power));
+        error = otPlatRadioSetTransmitPower(GetInstancePtr(), power);
     }
 
 exit:
@@ -4393,10 +4380,9 @@ otError Interpreter::ProcessUnsecurePort(Arg aArgs[])
     }
     else
     {
-        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
-exit:
     return error;
 }
 
@@ -4455,20 +4441,17 @@ otError Interpreter::ProcessMacFilter(Arg aArgs[])
     {
         PrintMacFilter();
     }
+    else if (aArgs[0] == "addr")
+    {
+        error = ProcessMacFilterAddress(aArgs + 1);
+    }
+    else if (aArgs[0] == "rss")
+    {
+        error = ProcessMacFilterRss(aArgs + 1);
+    }
     else
     {
-        if (aArgs[0] == "addr")
-        {
-            error = ProcessMacFilterAddress(aArgs + 1);
-        }
-        else if (aArgs[0] == "rss")
-        {
-            error = ProcessMacFilterRss(aArgs + 1);
-        }
-        else
-        {
-            error = OT_ERROR_INVALID_COMMAND;
-        }
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
     return error;
@@ -4571,51 +4554,48 @@ otError Interpreter::ProcessMacFilterAddress(Arg aArgs[])
             OutputLine("");
         }
     }
+    else if (aArgs[0] == "disable")
+    {
+        VerifyOrExit(aArgs[1].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
+        otLinkFilterSetAddressMode(GetInstancePtr(), OT_MAC_FILTER_ADDRESS_MODE_DISABLED);
+    }
+    else if (aArgs[0] == "allowlist")
+    {
+        VerifyOrExit(aArgs[1].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
+        otLinkFilterSetAddressMode(GetInstancePtr(), OT_MAC_FILTER_ADDRESS_MODE_ALLOWLIST);
+    }
+    else if (aArgs[0] == "denylist")
+    {
+        VerifyOrExit(aArgs[1].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
+        otLinkFilterSetAddressMode(GetInstancePtr(), OT_MAC_FILTER_ADDRESS_MODE_DENYLIST);
+    }
+    else if (aArgs[0] == "add")
+    {
+        SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
+        error = otLinkFilterAddAddress(GetInstancePtr(), &extAddr);
+
+        VerifyOrExit(error == OT_ERROR_NONE || error == OT_ERROR_ALREADY);
+
+        if (!aArgs[2].IsEmpty())
+        {
+            int8_t rss;
+
+            SuccessOrExit(error = aArgs[2].ParseAsInt8(rss));
+            SuccessOrExit(error = otLinkFilterAddRssIn(GetInstancePtr(), &extAddr, rss));
+        }
+    }
+    else if (aArgs[0] == "remove")
+    {
+        SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
+        otLinkFilterRemoveAddress(GetInstancePtr(), &extAddr);
+    }
+    else if (aArgs[0] == "clear")
+    {
+        otLinkFilterClearAddresses(GetInstancePtr());
+    }
     else
     {
-        if (aArgs[0] == "disable")
-        {
-            VerifyOrExit(aArgs[1].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
-            otLinkFilterSetAddressMode(GetInstancePtr(), OT_MAC_FILTER_ADDRESS_MODE_DISABLED);
-        }
-        else if (aArgs[0] == "allowlist")
-        {
-            VerifyOrExit(aArgs[1].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
-            otLinkFilterSetAddressMode(GetInstancePtr(), OT_MAC_FILTER_ADDRESS_MODE_ALLOWLIST);
-        }
-        else if (aArgs[0] == "denylist")
-        {
-            VerifyOrExit(aArgs[1].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
-            otLinkFilterSetAddressMode(GetInstancePtr(), OT_MAC_FILTER_ADDRESS_MODE_DENYLIST);
-        }
-        else if (aArgs[0] == "add")
-        {
-            SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
-            error = otLinkFilterAddAddress(GetInstancePtr(), &extAddr);
-
-            VerifyOrExit(error == OT_ERROR_NONE || error == OT_ERROR_ALREADY);
-
-            if (!aArgs[2].IsEmpty())
-            {
-                int8_t rss;
-
-                SuccessOrExit(error = aArgs[2].ParseAsInt8(rss));
-                SuccessOrExit(error = otLinkFilterAddRssIn(GetInstancePtr(), &extAddr, rss));
-            }
-        }
-        else if (aArgs[0] == "remove")
-        {
-            SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
-            otLinkFilterRemoveAddress(GetInstancePtr(), &extAddr);
-        }
-        else if (aArgs[0] == "clear")
-        {
-            otLinkFilterClearAddresses(GetInstancePtr());
-        }
-        else
-        {
-            error = OT_ERROR_INVALID_COMMAND;
-        }
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
 exit:
@@ -4657,60 +4637,57 @@ otError Interpreter::ProcessMacFilterRss(Arg aArgs[])
             }
         }
     }
-    else
+    else if (aArgs[0] == "add-lqi")
     {
-        if (aArgs[0] == "add-lqi")
-        {
-            uint8_t linkQuality;
+        uint8_t linkQuality;
 
-            SuccessOrExit(error = aArgs[2].ParseAsUint8(linkQuality));
-            VerifyOrExit(linkQuality <= 3, error = OT_ERROR_INVALID_ARGS);
-            rss = otLinkConvertLinkQualityToRss(GetInstancePtr(), linkQuality);
+        SuccessOrExit(error = aArgs[2].ParseAsUint8(linkQuality));
+        VerifyOrExit(linkQuality <= 3, error = OT_ERROR_INVALID_ARGS);
+        rss = otLinkConvertLinkQualityToRss(GetInstancePtr(), linkQuality);
 
-            if (aArgs[1] == "*")
-            {
-                otLinkFilterSetDefaultRssIn(GetInstancePtr(), rss);
-            }
-            else
-            {
-                SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
-                SuccessOrExit(error = otLinkFilterAddRssIn(GetInstancePtr(), &extAddr, rss));
-            }
-        }
-        else if (aArgs[0] == "add")
+        if (aArgs[1] == "*")
         {
-            SuccessOrExit(error = aArgs[2].ParseAsInt8(rss));
-
-            if (aArgs[1] == "*")
-            {
-                otLinkFilterSetDefaultRssIn(GetInstancePtr(), rss);
-            }
-            else
-            {
-                SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
-                SuccessOrExit(error = otLinkFilterAddRssIn(GetInstancePtr(), &extAddr, rss));
-            }
-        }
-        else if (aArgs[0] == "remove")
-        {
-            if (aArgs[1] == "*")
-            {
-                otLinkFilterClearDefaultRssIn(GetInstancePtr());
-            }
-            else
-            {
-                SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
-                otLinkFilterRemoveRssIn(GetInstancePtr(), &extAddr);
-            }
-        }
-        else if (aArgs[0] == "clear")
-        {
-            otLinkFilterClearAllRssIn(GetInstancePtr());
+            otLinkFilterSetDefaultRssIn(GetInstancePtr(), rss);
         }
         else
         {
-            error = OT_ERROR_INVALID_COMMAND;
+            SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
+            error = otLinkFilterAddRssIn(GetInstancePtr(), &extAddr, rss);
         }
+    }
+    else if (aArgs[0] == "add")
+    {
+        SuccessOrExit(error = aArgs[2].ParseAsInt8(rss));
+
+        if (aArgs[1] == "*")
+        {
+            otLinkFilterSetDefaultRssIn(GetInstancePtr(), rss);
+        }
+        else
+        {
+            SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
+            error = otLinkFilterAddRssIn(GetInstancePtr(), &extAddr, rss);
+        }
+    }
+    else if (aArgs[0] == "remove")
+    {
+        if (aArgs[1] == "*")
+        {
+            otLinkFilterClearDefaultRssIn(GetInstancePtr());
+        }
+        else
+        {
+            SuccessOrExit(error = aArgs[1].ParseAsHexString(extAddr.m8));
+            otLinkFilterRemoveRssIn(GetInstancePtr(), &extAddr);
+        }
+    }
+    else if (aArgs[0] == "clear")
+    {
+        otLinkFilterClearAllRssIn(GetInstancePtr());
+    }
+    else
+    {
+        error = OT_ERROR_INVALID_COMMAND;
     }
 
 exit:
