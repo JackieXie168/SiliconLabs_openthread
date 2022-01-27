@@ -248,6 +248,7 @@ SOURCES_COMMON                                  = \
     net/dhcp6_client.cpp                          \
     net/dhcp6_server.cpp                          \
     net/dns_client.cpp                            \
+    net/dns_dso.cpp                               \
     net/dns_types.cpp                             \
     net/dnssd_server.cpp                          \
     net/icmp6.cpp                                 \
@@ -484,6 +485,7 @@ HEADERS_COMMON                                  = \
     config/dhcp6_server.h                         \
     config/diag.h                                 \
     config/dns_client.h                           \
+    config/dns_dso.h                              \
     config/dnssd_server.h                         \
     config/dtls.h                                 \
     config/history_tracker.h                      \
@@ -549,6 +551,7 @@ HEADERS_COMMON                                  = \
     net/dhcp6_client.hpp                          \
     net/dhcp6_server.hpp                          \
     net/dns_client.hpp                            \
+    net/dns_dso.hpp                               \
     net/dns_types.hpp                             \
     net/dnssd_server.hpp                          \
     net/icmp6.hpp                                 \
