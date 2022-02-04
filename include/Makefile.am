@@ -56,7 +56,6 @@ openthread_headers                      = \
     openthread/dns.h                      \
     openthread/dns_client.h               \
     openthread/dnssd_server.h             \
-    openthread/entropy.h                  \
     openthread/error.h                    \
     openthread/heap.h                     \
     openthread/history_tracker.h          \
@@ -88,6 +87,7 @@ openthread_headers                      = \
     openthread/tcp.h                      \
     openthread/thread.h                   \
     openthread/thread_ftd.h               \
+    openthread/trel.h                     \
     openthread/udp.h                      \
     $(NULL)
 
@@ -115,7 +115,7 @@ ot_platform_headers                     = \
     openthread/platform/spi-slave.h       \
     openthread/platform/time.h            \
     openthread/platform/toolchain.h       \
-    openthread/platform/trel-udp6.h       \
+    openthread/platform/trel.h            \
     openthread/platform/udp.h             \
     $(NULL)
 

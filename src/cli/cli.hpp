@@ -418,12 +418,7 @@ private:
     otError ProcessFem(Arg aArgs[]);
     otError ProcessIfconfig(Arg aArgs[]);
     otError ProcessIpAddr(Arg aArgs[]);
-    otError ProcessIpAddrAdd(Arg aArgs[]);
-    otError ProcessIpAddrDel(Arg aArgs[]);
     otError ProcessIpMulticastAddr(Arg aArgs[]);
-    otError ProcessIpMulticastAddrAdd(Arg aArgs[]);
-    otError ProcessIpMulticastAddrDel(Arg aArgs[]);
-    otError ProcessMulticastPromiscuous(Arg aArgs[]);
 #if OPENTHREAD_CONFIG_JOINER_ENABLE
     otError ProcessJoiner(Arg aArgs[]);
 #endif
@@ -456,8 +451,6 @@ private:
 #endif
 #if OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
     otError ProcessMlr(Arg aArgs[]);
-
-    otError ProcessMlrReg(Arg aArgs[]);
 
     static void HandleMlrRegResult(void *              aContext,
                                    otError             aError,
@@ -508,9 +501,6 @@ private:
     otError ProcessPollPeriod(Arg aArgs[]);
 #if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
     otError ProcessPrefix(Arg aArgs[]);
-    otError ProcessPrefixAdd(Arg aArgs[]);
-    otError ProcessPrefixRemove(Arg aArgs[]);
-    otError ProcessPrefixList(void);
 #endif
     otError ProcessPromiscuous(Arg aArgs[]);
 #if OPENTHREAD_FTD
@@ -530,9 +520,6 @@ private:
 #endif
 #if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
     otError ProcessRoute(Arg aArgs[]);
-    otError ProcessRouteAdd(Arg aArgs[]);
-    otError ProcessRouteRemove(Arg aArgs[]);
-    otError ProcessRouteList(void);
 #endif
 #if OPENTHREAD_FTD
     otError ProcessRouter(Arg aArgs[]);
@@ -563,16 +550,14 @@ private:
     otError ProcessUptime(Arg aArgs[]);
 #endif
 #if OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
-    otError ProcessMacFilter(Arg aArgs[]);
-    void    PrintMacFilter(void);
-    otError ProcessMacFilterAddress(Arg aArgs[]);
-    otError ProcessMacFilterRss(Arg aArgs[]);
+    otError            ProcessMacFilter(Arg aArgs[]);
+    void               PrintMacFilter(void);
+    otError            ProcessMacFilterAddress(Arg aArgs[]);
+    otError            ProcessMacFilterRss(Arg aArgs[]);
+    void               OutputMacFilterEntry(const otMacFilterEntry &aEntry);
+    static const char *MacFilterAddressModeToString(otMacFilterAddressMode aMode);
 #endif
     otError ProcessMac(Arg aArgs[]);
-    otError ProcessMacRetries(Arg aArgs[]);
-#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
-    otError ProcessMacSend(Arg aArgs[]);
-#endif
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     otError ProcessTrel(Arg aArgs[]);
 #endif
