@@ -33,7 +33,6 @@ import logging
 import os
 import re
 import socket
-import string
 import subprocess
 import sys
 import time
@@ -126,6 +125,8 @@ class OtbrDocker:
             config.OTBR_DOCKER_IMAGE,
             '-B',
             config.BACKBONE_IFNAME,
+            '--trel-url',
+            f'trel://{config.BACKBONE_IFNAME}',
         ],
                                              stdin=subprocess.DEVNULL,
                                              stdout=sys.stdout,
@@ -883,6 +884,11 @@ class NodeImpl:
         self.send_command(cmd)
         self._expect_done()
 
+    def get_rcp_version(self) -> str:
+        self.send_command('rcp version')
+        rcp_version = self._expect_command_output()[0].strip()
+        return rcp_version
+
     def srp_server_get_state(self):
         states = ['disabled', 'running', 'stopped']
         self.send_command('srp server state')
@@ -1140,6 +1146,21 @@ class NodeImpl:
         cmd = 'srp client leaseinterval'
         self.send_command(cmd)
         return int(self._expect_result('\d+'))
+
+    #
+    # TREL utilities
+    #
+
+    def get_trel_state(self) -> Union[None, bool]:
+        states = [r'Disabled', r'Enabled']
+        self.send_command('trel')
+        try:
+            return self._expect_result(states) == 'Enabled'
+        except Exception as ex:
+            if 'InvalidCommand' in str(ex):
+                return None
+
+            raise
 
     def _encode_txt_entry(self, entry):
         """Encodes the TXT entry to the DNS-SD TXT record format as a HEX string.

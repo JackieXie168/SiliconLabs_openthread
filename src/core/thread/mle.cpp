@@ -44,6 +44,7 @@
 #include "common/locator_getters.hpp"
 #include "common/logging.hpp"
 #include "common/random.hpp"
+#include "common/serial_number.hpp"
 #include "common/settings.hpp"
 #include "crypto/aes_ccm.hpp"
 #include "meshcop/meshcop.hpp"
@@ -1002,8 +1003,8 @@ exit:
 
 const LeaderData &Mle::GetLeaderData(void)
 {
-    mLeaderData.SetDataVersion(Get<NetworkData::Leader>().GetVersion());
-    mLeaderData.SetStableDataVersion(Get<NetworkData::Leader>().GetStableVersion());
+    mLeaderData.SetDataVersion(Get<NetworkData::Leader>().GetVersion(NetworkData::kFullSet));
+    mLeaderData.SetStableDataVersion(Get<NetworkData::Leader>().GetVersion(NetworkData::kStableSubset));
 
     return mLeaderData;
 }
@@ -1166,8 +1167,8 @@ Error Mle::AppendLeaderData(Message &aMessage)
 {
     LeaderDataTlv leaderDataTlv;
 
-    mLeaderData.SetDataVersion(Get<NetworkData::Leader>().GetVersion());
-    mLeaderData.SetStableDataVersion(Get<NetworkData::Leader>().GetStableVersion());
+    mLeaderData.SetDataVersion(Get<NetworkData::Leader>().GetVersion(NetworkData::kFullSet));
+    mLeaderData.SetStableDataVersion(Get<NetworkData::Leader>().GetVersion(NetworkData::kStableSubset));
 
     leaderDataTlv.Init();
     leaderDataTlv.Set(mLeaderData);
@@ -1188,7 +1189,7 @@ exit:
     return error;
 }
 
-Error Mle::AppendNetworkData(Message &aMessage, bool aStableOnly)
+Error Mle::AppendNetworkData(Message &aMessage, NetworkData::Type aType)
 {
     Error   error = kErrorNone;
     uint8_t networkData[NetworkData::NetworkData::kMaxSize];
@@ -1197,7 +1198,7 @@ Error Mle::AppendNetworkData(Message &aMessage, bool aStableOnly)
     VerifyOrExit(!mRetrieveNewNetworkData, error = kErrorInvalidState);
 
     length = sizeof(networkData);
-    IgnoreError(Get<NetworkData::Leader>().CopyNetworkData(aStableOnly, networkData, length));
+    IgnoreError(Get<NetworkData::Leader>().CopyNetworkData(aType, networkData, length));
 
     error = Tlv::Append<NetworkDataTlv>(aMessage, networkData, length);
 
@@ -2747,6 +2748,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     uint8_t            tag[kMleSecurityTagSize];
     uint8_t            command;
     Neighbor *         neighbor;
+    bool               skipLoggingError = false;
 
     otLogDebgMle("Receive UDP message");
 
@@ -2827,7 +2829,15 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
     aesCcm.Finalize(tag);
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    VerifyOrExit(memcmp(messageTag, tag, sizeof(tag)) == 0, error = kErrorSecurity);
+    if (memcmp(messageTag, tag, sizeof(tag)) != 0)
+    {
+        // We skip logging security check failures for broadcast MLE
+        // messages since it can be common to receive such messages
+        // from adjacent Thread networks.
+        skipLoggingError = (aMessageInfo.GetSockAddr().IsMulticast() &&
+                            aMessageInfo.GetThreadLinkInfo()->GetPanId() == Mac::kPanIdBroadcast);
+        ExitNow(error = kErrorSecurity);
+    }
 #endif
 
     if (keySequence > Get<KeyManager>().GetCurrentKeySequence())
@@ -3016,7 +3026,10 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 #endif
 
 exit:
-    LogProcessError(kTypeGenericUdp, error);
+    if (!skipLoggingError)
+    {
+        LogProcessError(kTypeGenericUdp, error);
+    }
 }
 
 void Mle::HandleAdvertisement(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, Neighbor *aNeighbor)
@@ -3140,18 +3153,8 @@ exit:
 
 bool Mle::IsNetworkDataNewer(const LeaderData &aLeaderData)
 {
-    int8_t diff;
-
-    if (IsFullNetworkData())
-    {
-        diff = static_cast<int8_t>(aLeaderData.GetDataVersion() - Get<NetworkData::Leader>().GetVersion());
-    }
-    else
-    {
-        diff = static_cast<int8_t>(aLeaderData.GetStableDataVersion() - Get<NetworkData::Leader>().GetStableVersion());
-    }
-
-    return (diff > 0);
+    return SerialNumber::IsGreater(aLeaderData.GetDataVersion(GetNetworkDataType()),
+                                   Get<NetworkData::Leader>().GetVersion(GetNetworkDataType()));
 }
 
 Error Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -3242,9 +3245,9 @@ Error Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInfo &aMe
 
     if (Tlv::FindTlvOffset(aMessage, Tlv::kNetworkData, networkDataOffset) == kErrorNone)
     {
-        error =
-            Get<NetworkData::Leader>().SetNetworkData(leaderData.GetDataVersion(), leaderData.GetStableDataVersion(),
-                                                      !IsFullNetworkData(), aMessage, networkDataOffset);
+        error = Get<NetworkData::Leader>().SetNetworkData(leaderData.GetDataVersion(NetworkData::kFullSet),
+                                                          leaderData.GetDataVersion(NetworkData::kStableSubset),
+                                                          GetNetworkDataType(), aMessage, networkDataOffset);
         SuccessOrExit(error);
     }
     else
@@ -3503,27 +3506,28 @@ void Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInfo &
 #if OPENTHREAD_FTD
     if (IsFullThreadDevice() && !IsDetached())
     {
-        int8_t diff = static_cast<int8_t>(connectivity.GetIdSequence() - Get<RouterTable>().GetRouterIdSequence());
+        bool isPartitionIdSame = (leaderData.GetPartitionId() == mLeaderData.GetPartitionId());
+        bool isIdSequenceSame  = (connectivity.GetIdSequence() == Get<RouterTable>().GetRouterIdSequence());
+        bool isIdSequenceGreater =
+            SerialNumber::IsGreater(connectivity.GetIdSequence(), Get<RouterTable>().GetRouterIdSequence());
 
         switch (mParentRequestMode)
         {
         case kAttachAny:
-            VerifyOrExit(leaderData.GetPartitionId() != mLeaderData.GetPartitionId() || diff > 0);
+            VerifyOrExit(!isPartitionIdSame || isIdSequenceGreater);
             break;
 
         case kAttachSame1:
         case kAttachSame2:
-            VerifyOrExit(leaderData.GetPartitionId() == mLeaderData.GetPartitionId());
-            VerifyOrExit(diff > 0);
+            VerifyOrExit(isPartitionIdSame && isIdSequenceGreater);
             break;
 
         case kAttachSameDowngrade:
-            VerifyOrExit(leaderData.GetPartitionId() == mLeaderData.GetPartitionId());
-            VerifyOrExit(diff >= 0);
+            VerifyOrExit(isPartitionIdSame && (isIdSequenceSame || isIdSequenceGreater));
             break;
 
         case kAttachBetter:
-            VerifyOrExit(leaderData.GetPartitionId() != mLeaderData.GetPartitionId());
+            VerifyOrExit(!isPartitionIdSame);
 
             VerifyOrExit(MleRouter::ComparePartitions(connectivity.GetActiveRouters() <= 1, leaderData,
                                                       Get<MleRouter>().IsSingleton(), mLeaderData) > 0);
@@ -3740,9 +3744,9 @@ void Mle::HandleChildIdResponse(const Message &         aMessage,
 
     mParent.SetRloc16(sourceAddress);
 
-    IgnoreError(Get<NetworkData::Leader>().SetNetworkData(leaderData.GetDataVersion(),
-                                                          leaderData.GetStableDataVersion(), !IsFullNetworkData(),
-                                                          aMessage, networkDataOffset));
+    IgnoreError(Get<NetworkData::Leader>().SetNetworkData(leaderData.GetDataVersion(NetworkData::kFullSet),
+                                                          leaderData.GetDataVersion(NetworkData::kStableSubset),
+                                                          GetNetworkDataType(), aMessage, networkDataOffset));
 
     SetStateChild(shortAddress);
 
