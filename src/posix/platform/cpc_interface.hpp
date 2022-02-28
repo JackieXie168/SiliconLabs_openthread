@@ -149,6 +149,10 @@ public:
       */
     otError ResetConnection(void) { return OT_ERROR_NONE; }
 
+    /**
+      * This method is called reinitialise the CPC interface if sCpcResetReq indicates that a restart
+      * is required.
+      */
     void CheckAndReInitCpc(void);
 
 private:

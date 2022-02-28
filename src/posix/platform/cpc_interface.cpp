@@ -243,23 +243,33 @@ void CpcInterface::CheckAndReInitCpc(void)
     int result;
     int retryCount = 0;
     
+    //Check if CPC needs to be restarted
     VerifyOrExit(sCpcResetReq);
     
     do
     {
+        //Add some delay before attempting to restart
         usleep(kMaxSleepDuration);
+        //Try to restart CPC
         result = cpc_restart(&mHandle);
+        //Mark how many times the restart was attempted
         retryCount++;
+        //Continue to try and restore CPC communication until we
+        //have exhausted the retries or restart was successful
     }   while ((result != 0) && (retryCount > kMaxRestartRetries));
 
     otLogCritPlat("result : %d retryCount : %d", result, retryCount);
+    //If the restart failed, exit.
     VerifyOrDie(result == 0, OT_EXIT_ERROR_ERRNO);
 
+    //Reopen the endpoint for communication
     mSockFd = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
 
     otLogCritPlat("mSockFd : %d", mSockFd);
+    //If the restart failed, exit.
     VerifyOrDie(mSockFd != -1, OT_EXIT_ERROR_ERRNO);
 
+    //Clear the flag
     SetCpcResetReq(false);
 
 exit:
