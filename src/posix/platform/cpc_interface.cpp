@@ -59,6 +59,8 @@ using ot::Spinel::SpinelInterface;
 namespace ot {
 namespace Posix {
 
+bool CpcInterface::sCpcResetReq = false;
+
 CpcInterface::CpcInterface(SpinelInterface::ReceiveFrameCallback aCallback,
                              void *                                aCallbackContext,
                              SpinelInterface::RxFrameBuffer &      aFrameBuffer)
@@ -80,7 +82,7 @@ otError CpcInterface::Init(const Url::Url &aRadioUrl)
 
     VerifyOrExit(mSockFd == -1, error = OT_ERROR_ALREADY);
 
-    if (cpc_init(&mHandle, aRadioUrl.GetPath(), false, NULL) != 0)
+    if (cpc_init(&mHandle, aRadioUrl.GetPath(), false, HandleSecondaryReset) != 0)
     {
       otLogCritPlat("CPC init failed. Ensure radio-url argument has the form 'spinel+cpc://cpcd_0?iid=<1..3>'");
       DieNow(OT_EXIT_FAILURE);
@@ -96,6 +98,11 @@ otError CpcInterface::Init(const Url::Url &aRadioUrl)
 
 exit:
     return error;
+}
+
+void CpcInterface::HandleSecondaryReset(void)
+{
+    SetCpcResetReq(true);
 }
 
 CpcInterface::~CpcInterface(void)
@@ -159,7 +166,10 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
 
 otError CpcInterface::SendFrame(const uint8_t *aFrame, uint16_t aLength)
 {
-    otError error = Write(aFrame, aLength);
+    otError error;
+
+    CheckAndReInitCpc();
+    error = Write(aFrame, aLength);
     return error;
 }
 
@@ -224,7 +234,36 @@ void CpcInterface::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMa
 void CpcInterface::Process(const RadioProcessContext &aContext)
 {
     OT_UNUSED_VARIABLE(aContext);
+    CheckAndReInitCpc();
     Read(0);
+}
+
+void CpcInterface::CheckAndReInitCpc(void)
+{
+    int result;
+    int retryCount = 0;
+    
+    VerifyOrExit(sCpcResetReq);
+    
+    do
+    {
+        usleep(kMaxSleepDuration);
+        result = cpc_restart(&mHandle);
+        retryCount++;
+    }   while ((result != 0) && (retryCount > kMaxRestartRetries));
+
+    otLogCritPlat("result : %d retryCount : %d", result, retryCount);
+    VerifyOrDie(result == 0, OT_EXIT_ERROR_ERRNO);
+
+    mSockFd = cpc_open_endpoint(mHandle, &mEndpoint, mId, 1);
+
+    otLogCritPlat("mSockFd : %d", mSockFd);
+    VerifyOrDie(mSockFd != -1, OT_EXIT_ERROR_ERRNO);
+
+    SetCpcResetReq(false);
+
+exit:
+    return;
 }
 
 void CpcInterface::SendResetResponse(void)
