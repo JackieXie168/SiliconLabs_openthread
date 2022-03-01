@@ -158,6 +158,10 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
         mReceiveFrameCallback(mReceiveFrameContext);
 
     }
+    else if (errno == ECONNRESET)
+    {
+        SetCpcResetReq(true);
+    }
     else if ((errno != EAGAIN) && (errno != EINTR))
     {
         DieNow(OT_EXIT_ERROR_ERRNO);
@@ -201,11 +205,13 @@ otError CpcInterface::Write(const uint8_t *aFrame, uint16_t aLength)
         }
         else if (bytesWritten < 0)
         {
+            VerifyOrExit((errno == EPIPE), SetCpcResetReq(true));
             VerifyOrDie((errno == EAGAIN) || (errno == EWOULDBLOCK) || (errno == EINTR), OT_EXIT_ERROR_ERRNO);
         }
 
     }
 
+exit:
     return error;
 }
 
@@ -213,6 +219,7 @@ otError CpcInterface::WaitForFrame(uint64_t aTimeoutUs)
 {
     otError        error = OT_ERROR_NONE;
 
+    CheckAndReInitCpc();
     Read(aTimeoutUs);
 
     return error;
