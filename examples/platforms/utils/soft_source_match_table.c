@@ -36,6 +36,7 @@
 
 #include "utils/soft_source_match_table.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
