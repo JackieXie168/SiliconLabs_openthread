@@ -51,7 +51,7 @@ extern uint8_t        otNcpPlatGetCurCommandIid(void);
 static inline uint8_t getPanIndex(uint8_t iid)
 {
     // Assert if iid=0 (broadcast iid)
-    OT_ASSERT(iid != 0);
+    assert(iid != 0);
     return iid - 1;
 }
 #else
