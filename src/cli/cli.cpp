@@ -5226,9 +5226,9 @@ otError Interpreter::ProcessCommand(Arg aArgs[])
     }
     else
     {
-        VerifyOrExit((error = ProcessUserCommands(args)) != OT_ERROR_NONE);
+        VerifyOrExit((error = ProcessUserCommands(aArgs)) != OT_ERROR_NONE);
 #if OPENTHREAD_CONFIG_COPROCESSOR_RPC_ENABLE
-        VerifyOrExit((error = ProcessCRPC(args)) != OT_ERROR_NONE);
+        VerifyOrExit((error = ProcessCRPC(aArgs)) != OT_ERROR_NONE);
 #endif
     }
 
