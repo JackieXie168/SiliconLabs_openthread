@@ -114,6 +114,14 @@ namespace ot {
 class Instance : public otInstance, private NonCopyable
 {
 public:
+    /**
+     * This type represents the message buffer information (number of messages/buffers in all OT stack message queues).
+     *
+     */
+    class BufferInfo : public otBufferInfo, public Clearable<BufferInfo>
+    {
+    };
+
 #if OPENTHREAD_CONFIG_MULTIPLE_INSTANCE_ENABLE
     /**
       * This static method initializes the OpenThread instance.
@@ -282,6 +290,14 @@ public:
     static bool IsDnsNameCompressionEnabled(void) { return sDnsNameCompressionEnabled; }
 #endif
 
+    /**
+     * This method retrieves the the Message Buffer information.
+     *
+     * @param[out]  aInfo  A `BufferInfo` where information is written.
+     *
+     */
+    void GetBufferInfo(BufferInfo &aInfo);
+
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
     /**
@@ -412,6 +428,7 @@ private:
 };
 
 DefineCoreType(otInstance, Instance);
+DefineCoreType(otBufferInfo, Instance::BufferInfo);
 
 // Specializations of the `Get<Type>()` method.
 
