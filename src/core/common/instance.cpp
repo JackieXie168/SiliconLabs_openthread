@@ -192,7 +192,7 @@ void Instance::AfterInit(void)
     // Restore datasets and network information
 
     Get<Settings>().Init();
-    IgnoreError(Get<Mle::MleRouter>().Restore());
+    Get<Mle::MleRouter>().Restore();
 
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     Get<Trel::Link>().AfterInit();
@@ -236,6 +236,7 @@ exit:
 }
 
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
+
 void Instance::FactoryReset(void)
 {
     Get<Settings>().Wipe();
@@ -251,6 +252,51 @@ Error Instance::ErasePersistentInfo(void)
 
 exit:
     return error;
+}
+
+void Instance::GetBufferInfo(BufferInfo &aInfo)
+{
+    uint16_t messages, buffers;
+
+    aInfo.Clear();
+
+    aInfo.mTotalBuffers = Get<MessagePool>().GetTotalBufferCount();
+    aInfo.mFreeBuffers  = Get<MessagePool>().GetFreeBufferCount();
+
+    Get<MeshForwarder>().GetSendQueue().GetInfo(aInfo.m6loSendMessages, aInfo.m6loSendBuffers);
+
+    Get<MeshForwarder>().GetReassemblyQueue().GetInfo(aInfo.m6loReassemblyMessages, aInfo.m6loReassemblyBuffers);
+
+#if OPENTHREAD_FTD
+    Get<MeshForwarder>().GetResolvingQueue().GetInfo(aInfo.mArpMessages, aInfo.mArpBuffers);
+#endif
+
+    Get<Ip6::Ip6>().GetSendQueue().GetInfo(aInfo.mIp6Messages, aInfo.mIp6Buffers);
+
+#if OPENTHREAD_FTD
+    Get<Ip6::Mpl>().GetBufferedMessageSet().GetInfo(aInfo.mMplMessages, aInfo.mMplBuffers);
+#endif
+
+    Get<Mle::MleRouter>().GetMessageQueue().GetInfo(aInfo.mMleMessages, aInfo.mMleBuffers);
+
+    Get<Tmf::Agent>().GetRequestMessages().GetInfo(aInfo.mCoapMessages, aInfo.mCoapBuffers);
+    Get<Tmf::Agent>().GetCachedResponses().GetInfo(messages, buffers);
+    aInfo.mCoapMessages += messages;
+    aInfo.mCoapBuffers += buffers;
+
+#if OPENTHREAD_CONFIG_DTLS_ENABLE
+    Get<Coap::CoapSecure>().GetRequestMessages().GetInfo(aInfo.mCoapSecureMessages, aInfo.mCoapSecureBuffers);
+    Get<Coap::CoapSecure>().GetCachedResponses().GetInfo(messages, buffers);
+    aInfo.mCoapSecureMessages += messages;
+    aInfo.mCoapSecureBuffers += buffers;
+#endif
+
+#if OPENTHREAD_CONFIG_COAP_API_ENABLE
+    GetApplicationCoap().GetRequestMessages().GetInfo(aInfo.mApplicationCoapMessages, aInfo.mApplicationCoapBuffers);
+    GetApplicationCoap().GetCachedResponses().GetInfo(messages, buffers);
+    aInfo.mApplicationCoapMessages += messages;
+    aInfo.mApplicationCoapBuffers += buffers;
+#endif
 }
 
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
