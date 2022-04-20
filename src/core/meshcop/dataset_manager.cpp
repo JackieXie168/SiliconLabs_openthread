@@ -140,7 +140,7 @@ Error DatasetManager::Save(const Dataset &aDataset)
 
     if (isNetworkkeyUpdated || compare > 0)
     {
-        IgnoreError(mLocal.Save(aDataset));
+        SuccessOrExit(error = mLocal.Save(aDataset));
 
 #if OPENTHREAD_FTD
         Get<NetworkData::Leader>().IncrementVersionAndStableVersion();
@@ -255,7 +255,7 @@ void DatasetManager::SendSet(void)
 {
     Error            error;
     Coap::Message *  message = nullptr;
-    Ip6::MessageInfo messageInfo;
+    Tmf::MessageInfo messageInfo(GetInstance());
     Dataset          dataset;
 
     VerifyOrExit(!mMgmtPending, error = kErrorBusy);
@@ -287,9 +287,7 @@ void DatasetManager::SendSet(void)
     IgnoreError(Read(dataset));
     SuccessOrExit(error = message->AppendBytes(dataset.GetBytes(), dataset.GetSize()));
 
-    messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    IgnoreError(Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
-    messageInfo.SetPeerPort(Tmf::kUdpPort);
+    IgnoreError(messageInfo.SetSockAddrToRlocPeerAddrToLeaderAloc());
     SuccessOrExit(
         error = Get<Tmf::Agent>().SendMessage(*message, messageInfo, &DatasetManager::HandleMgmtSetResponse, this));
 
@@ -483,7 +481,7 @@ Error DatasetManager::SendSetRequest(const Dataset::Info &    aDatasetInfo,
 {
     Error            error   = kErrorNone;
     Coap::Message *  message = nullptr;
-    Ip6::MessageInfo messageInfo;
+    Tmf::MessageInfo messageInfo(GetInstance());
 
     VerifyOrExit(!mMgmtPending, error = kErrorBusy);
 
@@ -526,9 +524,7 @@ Error DatasetManager::SendSetRequest(const Dataset::Info &    aDatasetInfo,
         SuccessOrExit(error = message->AppendBytes(aTlvs, aLength));
     }
 
-    messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    IgnoreError(Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
-    messageInfo.SetPeerPort(Tmf::kUdpPort);
+    IgnoreError(messageInfo.SetSockAddrToRlocPeerAddrToLeaderAloc());
 
     SuccessOrExit(error = Get<Tmf::Agent>().SendMessage(*message, messageInfo, HandleMgmtSetResponse, this));
     mMgmtSetCallback        = aCallback;
@@ -549,7 +545,7 @@ Error DatasetManager::SendGetRequest(const Dataset::Components &aDatasetComponen
 {
     Error            error = kErrorNone;
     Coap::Message *  message;
-    Ip6::MessageInfo messageInfo;
+    Tmf::MessageInfo messageInfo(GetInstance());
     Tlv              tlv;
     uint8_t          datasetTlvs[kMaxDatasetTlvs];
     uint8_t          length;
@@ -643,17 +639,14 @@ Error DatasetManager::SendGetRequest(const Dataset::Components &aDatasetComponen
         }
     }
 
+    IgnoreError(messageInfo.SetSockAddrToRlocPeerAddrToLeaderAloc());
+
     if (aAddress != nullptr)
     {
+        // Use leader ALOC if `aAddress` is `nullptr`.
         messageInfo.SetPeerAddr(AsCoreType(aAddress));
     }
-    else
-    {
-        IgnoreError(Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
-    }
 
-    messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    messageInfo.SetPeerPort(Tmf::kUdpPort);
     SuccessOrExit(error = Get<Tmf::Agent>().SendMessage(*message, messageInfo));
 
     LogInfo("sent dataset get request");
@@ -697,9 +690,9 @@ Error ActiveDataset::Save(const Timestamp &aTimestamp, const Message &aMessage, 
     Error   error = kErrorNone;
     Dataset dataset;
 
-    SuccessOrExit(error = dataset.Set(aMessage, aOffset, aLength));
+    SuccessOrExit(error = dataset.ReadFromMessage(aMessage, aOffset, aLength));
     dataset.SetTimestamp(Dataset::kActive, aTimestamp);
-    IgnoreError(DatasetManager::Save(dataset));
+    error = DatasetManager::Save(dataset);
 
 exit:
     return error;
@@ -784,9 +777,9 @@ Error PendingDataset::Save(const Timestamp &aTimestamp, const Message &aMessage,
     Error   error = kErrorNone;
     Dataset dataset;
 
-    SuccessOrExit(error = dataset.Set(aMessage, aOffset, aLength));
+    SuccessOrExit(error = dataset.ReadFromMessage(aMessage, aOffset, aLength));
     dataset.SetTimestamp(Dataset::kPending, aTimestamp);
-    IgnoreError(DatasetManager::Save(dataset));
+    SuccessOrExit(error = DatasetManager::Save(dataset));
     StartDelayTimer();
 
 exit:
