@@ -195,7 +195,7 @@ SOURCES_COMMON                                  = \
     common/log.cpp                                \
     common/message.cpp                            \
     common/notifier.cpp                           \
-    common/random_manager.cpp                     \
+    common/random.cpp                             \
     common/settings.cpp                           \
     common/string.cpp                             \
     common/tasklet.cpp                            \
@@ -341,7 +341,7 @@ RADIO_SOURCES_COMMON                       = \
     common/error.cpp                         \
     common/instance.cpp                      \
     common/log.cpp                           \
-    common/random_manager.cpp                \
+    common/random.cpp                        \
     common/string.cpp                        \
     common/tasklet.cpp                       \
     common/timer.cpp                         \
@@ -460,7 +460,6 @@ HEADERS_COMMON                                  = \
     common/pool.hpp                               \
     common/ptr_wrapper.hpp                        \
     common/random.hpp                             \
-    common/random_manager.hpp                     \
     common/retain_ptr.hpp                         \
     common/serial_number.hpp                      \
     common/settings.hpp                           \

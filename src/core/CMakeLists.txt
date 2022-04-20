@@ -105,7 +105,7 @@ set(COMMON_SOURCES
     common/log.cpp
     common/message.cpp
     common/notifier.cpp
-    common/random_manager.cpp
+    common/random.cpp
     common/settings.cpp
     common/string.cpp
     common/tasklet.cpp
@@ -251,7 +251,7 @@ set(RADIO_COMMON_SOURCES
     common/error.cpp
     common/instance.cpp
     common/log.cpp
-    common/random_manager.cpp
+    common/random.cpp
     common/string.cpp
     common/tasklet.cpp
     common/timer.cpp
