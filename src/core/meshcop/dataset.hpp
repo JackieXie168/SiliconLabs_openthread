@@ -308,7 +308,7 @@ public:
          * @returns The Network Name in the Dataset.
          *
          */
-        const Mac::NetworkName &GetNetworkName(void) const { return AsCoreType(&mNetworkName); }
+        const NetworkName &GetNetworkName(void) const { return AsCoreType(&mNetworkName); }
 
         /**
          * This method sets the Network Name in the Dataset.
@@ -316,7 +316,7 @@ public:
          * @param[in] aNetworkNameData   A Network Name Data.
          *
          */
-        void SetNetworkName(const Mac::NameData &aNetworkNameData)
+        void SetNetworkName(const NameData &aNetworkNameData)
         {
             IgnoreError(AsCoreType(&mNetworkName).Set(aNetworkNameData));
             mComponents.mIsNetworkNamePresent = true;
@@ -339,7 +339,7 @@ public:
          * @returns The Extended PAN ID in the Dataset.
          *
          */
-        const Mac::ExtendedPanId &GetExtendedPanId(void) const { return AsCoreType(&mExtendedPanId); }
+        const ExtendedPanId &GetExtendedPanId(void) const { return AsCoreType(&mExtendedPanId); }
 
         /**
          * This method sets the Extended PAN ID in the Dataset.
@@ -347,7 +347,7 @@ public:
          * @param[in] aExtendedPanId   An Extended PAN ID.
          *
          */
-        void SetExtendedPanId(const Mac::ExtendedPanId &aExtendedPanId)
+        void SetExtendedPanId(const ExtendedPanId &aExtendedPanId)
         {
             mExtendedPanId                      = aExtendedPanId;
             mComponents.mIsExtendedPanIdPresent = true;
