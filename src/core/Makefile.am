@@ -238,11 +238,13 @@ SOURCES_COMMON                                  = \
     meshcop/dataset_updater.cpp                   \
     meshcop/dtls.cpp                              \
     meshcop/energy_scan_client.cpp                \
+    meshcop/extended_panid.cpp                    \
     meshcop/joiner.cpp                            \
     meshcop/joiner_router.cpp                     \
     meshcop/meshcop.cpp                           \
     meshcop/meshcop_leader.cpp                    \
     meshcop/meshcop_tlvs.cpp                      \
+    meshcop/network_name.cpp                      \
     meshcop/panid_query_client.cpp                \
     meshcop/timestamp.cpp                         \
     net/checksum.cpp                              \
@@ -542,11 +544,13 @@ HEADERS_COMMON                                  = \
     meshcop/dataset_updater.hpp                   \
     meshcop/dtls.hpp                              \
     meshcop/energy_scan_client.hpp                \
+    meshcop/extended_panid.hpp                    \
     meshcop/joiner.hpp                            \
     meshcop/joiner_router.hpp                     \
     meshcop/meshcop.hpp                           \
     meshcop/meshcop_leader.hpp                    \
     meshcop/meshcop_tlvs.hpp                      \
+    meshcop/network_name.hpp                      \
     meshcop/panid_query_client.hpp                \
     meshcop/timestamp.hpp                         \
     net/checksum.hpp                              \
