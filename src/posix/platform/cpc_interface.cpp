@@ -129,10 +129,10 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
 
     if(aTimeoutUs > 0)
     {
-        struct timeval timeout;
+        cpc_timeval_t timeout;
 
-        timeout.tv_sec = static_cast<time_t>(aTimeoutUs / US_PER_S);
-        timeout.tv_usec = static_cast<suseconds_t>(aTimeoutUs % US_PER_S);
+        timeout.seconds = static_cast<int>(aTimeoutUs / US_PER_S);
+        timeout.microseconds = static_cast<int>(aTimeoutUs % US_PER_S);
 
         block = true;
         cpc_set_endpoint_option(mEndpoint, CPC_OPTION_BLOCKING, &block, sizeof(block));
