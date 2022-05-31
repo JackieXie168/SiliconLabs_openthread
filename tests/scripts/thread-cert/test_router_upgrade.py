@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-#  Copyright (c) 2021, The OpenThread Authors.
+#  Copyright (c) 2022, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
 #     names of its contributors may be used to endorse or promote products
 #     derived from this software without specific prior written permission.
 #
-#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS'
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 #  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -26,75 +26,73 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 #
-import logging
+
 import unittest
 
 import config
+import mle
+import network_layer
 import thread_cert
 
-# Test description:
-#   This test verifies bi-directional connectivity between Thread end device
-#   and infra host via an Border Router (FED)
+LEADER = 1
+REED = 2
+
+RSSI_LOW = -95
+RSSI_HIGH = -45
+
+ROUTER_UPGRADE_DELAY = 150
+
+# Test Purpose and Description:
+# -----------------------------
+# The purpose of this test case is to show that a REED does not
+# upgrade to router if it does not have a neighbor with link margin
+# above threshold.
 #
-# Topology:
-#    ----------------(eth)--------------------
-#           |                 |
-#          BR (FED)          HOST
-#           |
-#        Leader
+# Test Topology:
+# -------------
+# Leader
+#    |
+# REED
 #
+# DUT Types:
+# ----------
+#  Leader
+#  REED
 
-BR = 1
-LEADER = 2
-HOST = 3
 
-
-class TestBorderRouterAsFed(thread_cert.TestCase):
+class TestRouterUpgrade(thread_cert.TestCase):
     USE_MESSAGE_FACTORY = False
 
     TOPOLOGY = {
-        BR: {
-            'name': 'BR',
-            'allowlist': [LEADER],
-            'is_otbr': True,
-            'version': '1.2',
-            'router_eligible': False,
-        },
         LEADER: {
             'name': 'LEADER',
-            'allowlist': [BR],
-            'version': '1.2',
+            'mode': 'rdn',
+            'allowlist': [REED]
         },
-        HOST: {
-            'name': 'Host',
-            'is_host': True
+        REED: {
+            'name': 'REED',
+            'mode': 'rdn',
+            'allowlist': [LEADER]
         },
     }
 
     def test(self):
-        br = self.nodes[BR]
-        leader = self.nodes[LEADER]
-        host = self.nodes[HOST]
-
-        host.start(start_radvd=False)
+        self.nodes[LEADER].start()
         self.simulator.go(5)
+        self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
-        leader.start()
-        self.simulator.go(5)
-        self.assertEqual('leader', leader.get_state())
+        self.nodes[REED].add_allowlist(self.nodes[LEADER].get_addr64(), rssi=RSSI_LOW)
+        self.nodes[REED].enable_allowlist()
 
-        br.start()
-        self.simulator.go(5)
-        self.assertEqual('child', br.get_state())
+        self.nodes[REED].start()
+        self.simulator.go(ROUTER_UPGRADE_DELAY)
+        self.assertEqual(self.nodes[REED].get_state(), 'child')
 
-        self.simulator.go(config.BORDER_ROUTER_STARTUP_DELAY)
-        self.assertEqual('child', br.get_state())
+        self.nodes[REED].add_allowlist(self.nodes[LEADER].get_addr64(), rssi=RSSI_HIGH)
+        self.nodes[REED].enable_allowlist()
 
-        # Leader can ping to/from the Host on infra link.
-        self.assertTrue(leader.ping(host.get_ip6_address(config.ADDRESS_TYPE.ONLINK_ULA)[0]))
-        self.assertTrue(host.ping(leader.get_ip6_address(config.ADDRESS_TYPE.OMR)[0], backbone=True))
-
-        self.simulator.go(5)
+        self.simulator.go(ROUTER_UPGRADE_DELAY)
+        self.assertEqual(self.nodes[REED].get_state(), 'router')
 
 
 if __name__ == '__main__':
