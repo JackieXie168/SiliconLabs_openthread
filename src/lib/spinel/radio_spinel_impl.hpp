@@ -769,7 +769,7 @@ otError RadioSpinel<InterfaceType, ProcessContextType>::ThreadDatasetHandler(con
      * Initially set Active Timestamp to 0. This is to allow the node to join the network
      * yet retrieve the full Active Dataset from a neighboring device if one exists.
      */
-    opDataset.mActiveTimestamp                      = 0;
+    memset(&opDataset.mActiveTimestamp, 0, sizeof(opDataset.mActiveTimestamp));
     opDataset.mComponents.mIsActiveTimestampPresent = true;
 
     SuccessOrExit(error = dataset.SetFrom(static_cast<MeshCoP::Dataset::Info &>(opDataset)));
@@ -1699,18 +1699,11 @@ otError RadioSpinel<InterfaceType, ProcessContextType>::WaitResponse(void)
     do
     {
         uint64_t now;
-        uint64_t remain;
 
         now = otPlatTimeGet();
-        if (end <= now)
+        if ((end <= now) || (mSpinelInterface.WaitForFrame(end - now) != OT_ERROR_NONE))
         {
-            HandleRcpTimeout();
-            ExitNow(mError = OT_ERROR_NONE);
-        }
-        remain = end - now;
-
-        if (mSpinelInterface.WaitForFrame(remain) != OT_ERROR_NONE)
-        {
+            otLogWarnPlat("Wait for response timeout");
             HandleRcpTimeout();
             ExitNow(mError = OT_ERROR_NONE);
         }
@@ -2375,6 +2368,7 @@ void RadioSpinel<InterfaceType, ProcessContextType>::RecoverFromRcpFailure(void)
     }
 
     --mRcpFailureCount;
+    otLogNotePlat("RCP recovery is done");
 
 exit:
     return;
