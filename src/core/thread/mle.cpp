@@ -81,7 +81,10 @@ Mle::Mle(Instance &aInstance)
     , mAttachTimer(aInstance, Mle::HandleAttachTimer)
     , mDelayedResponseTimer(aInstance, Mle::HandleDelayedResponseTimer)
     , mMessageTransmissionTimer(aInstance, Mle::HandleMessageTransmissionTimer)
+    , mDetachGracefullyTimer(aInstance, Mle::HandleDetachGracefullyTimer)
     , mParentLeaderCost(0)
+    , mDetachGracefullyCallback(nullptr)
+    , mDetachGracefullyContext(nullptr)
     , mAttachMode(kAnyPartition)
     , mParentPriority(0)
     , mParentLinkQuality3(0)
@@ -259,7 +262,18 @@ void Mle::Stop(StopMode aMode)
     SetRole(kRoleDisabled);
 
 exit:
-    return;
+    mDetachGracefullyTimer.Stop();
+
+    if (mDetachGracefullyCallback != nullptr)
+    {
+        otDetachGracefullyCallback callback = mDetachGracefullyCallback;
+        void *                     context  = mDetachGracefullyContext;
+
+        mDetachGracefullyCallback = nullptr;
+        mDetachGracefullyContext  = nullptr;
+
+        callback(context);
+    }
 }
 
 void Mle::SetRole(DeviceRole aRole)
@@ -2423,6 +2437,11 @@ exit:
 
 Error Mle::SendChildUpdateRequest(void)
 {
+    return SendChildUpdateRequest(mTimeout);
+}
+
+Error Mle::SendChildUpdateRequest(uint32_t aTimeout)
+{
     Error                   error = kErrorNone;
     Ip6::Address            destination;
     TxMessage *             message = nullptr;
@@ -2452,7 +2471,7 @@ Error Mle::SendChildUpdateRequest(void)
     case kRoleChild:
         SuccessOrExit(error = message->AppendSourceAddressTlv());
         SuccessOrExit(error = message->AppendLeaderDataTlv());
-        SuccessOrExit(error = message->AppendTimeoutTlv(mTimeout));
+        SuccessOrExit(error = message->AppendTimeoutTlv(aTimeout));
 #if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
         if (Get<Mac::Mac>().IsCslEnabled())
         {
@@ -4017,7 +4036,14 @@ void Mle::HandleChildUpdateResponse(RxInfo &aRxInfo)
         switch (Tlv::Find<TimeoutTlv>(aRxInfo.mMessage, timeout))
         {
         case kErrorNone:
-            mTimeout = timeout;
+            if (timeout == 0 && IsDetachingGracefully())
+            {
+                Stop();
+            }
+            else
+            {
+                mTimeout = timeout;
+            }
             break;
         case kErrorNotFound:
             break;
@@ -4087,7 +4113,15 @@ void Mle::HandleAnnounce(RxInfo &aRxInfo)
 
     localTimestamp = Get<MeshCoP::ActiveDatasetManager>().GetTimestamp();
 
-    if (MeshCoP::Timestamp::Compare(&timestamp, localTimestamp) > 0)
+    if (timestamp.IsOrphanTimestamp() || MeshCoP::Timestamp::Compare(&timestamp, localTimestamp) < 0)
+    {
+        SendAnnounce(channel);
+
+#if OPENTHREAD_CONFIG_MLE_SEND_UNICAST_ANNOUNCE_RESPONSE
+        SendAnnounce(channel, aRxInfo.mMessageInfo.GetPeerAddr());
+#endif
+    }
+    else if (MeshCoP::Timestamp::Compare(&timestamp, localTimestamp) > 0)
     {
         // No action is required if device is detached, and current
         // channel and pan-id match the values from the received MLE
@@ -4109,14 +4143,6 @@ void Mle::HandleAnnounce(RxInfo &aRxInfo)
         mAttachCounter = 0;
 
         LogNote("Delay processing Announce - channel %d, panid 0x%02x", channel, panId);
-    }
-    else if (MeshCoP::Timestamp::Compare(&timestamp, localTimestamp) < 0)
-    {
-        SendAnnounce(channel);
-
-#if OPENTHREAD_CONFIG_MLE_SEND_UNICAST_ANNOUNCE_RESPONSE
-        SendAnnounce(channel, aRxInfo.mMessageInfo.GetPeerAddr());
-#endif
     }
     else
     {
@@ -4742,6 +4768,75 @@ void Mle::DelayedResponseMetadata::RemoveFrom(Message &aMessage) const
 {
     SuccessOrAssert(aMessage.SetLength(aMessage.GetLength() - sizeof(*this)));
 }
+
+Error Mle::DetachGracefully(otDetachGracefullyCallback aCallback, void *aContext)
+{
+    Error error = kErrorNone;
+
+    VerifyOrExit(!IsDetachingGracefully(), error = kErrorBusy);
+
+    OT_ASSERT(mDetachGracefullyCallback == nullptr);
+
+    mDetachGracefullyCallback = aCallback;
+    mDetachGracefullyContext  = aContext;
+
+    if (IsChild() || IsRouter())
+    {
+        mDetachGracefullyTimer.Start(kDetachGracefullyTimeout);
+    }
+    else
+    {
+        // If the device is a leader, or it's already detached or disabled, we start the timer with zero duration to
+        // stop and invoke the callback when the timer fires, so the operation finishes immediately and asynchronously.
+        mDetachGracefullyTimer.Start(0);
+    }
+
+    if (IsChild())
+    {
+        IgnoreError(SendChildUpdateRequest(/*aTimeout=*/0));
+    }
+#if OPENTHREAD_FTD
+    else if (IsRouter())
+    {
+        Get<MleRouter>().SendAddressRelease(&Mle::HandleDetachGracefullyAddressReleaseResponse, this);
+    }
+#endif
+
+exit:
+    return error;
+}
+
+void Mle::HandleDetachGracefullyTimer(Timer &aTimer)
+{
+    aTimer.Get<Mle>().HandleDetachGracefullyTimer();
+}
+
+void Mle::HandleDetachGracefullyTimer(void)
+{
+    Stop();
+}
+
+#if OPENTHREAD_FTD
+void Mle::HandleDetachGracefullyAddressReleaseResponse(void *               aContext,
+                                                       otMessage *          aMessage,
+                                                       const otMessageInfo *aMessageInfo,
+                                                       Error                aResult)
+{
+    OT_UNUSED_VARIABLE(aMessage);
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    OT_UNUSED_VARIABLE(aResult);
+
+    static_cast<MleRouter *>(aContext)->HandleDetachGracefullyAddressReleaseResponse();
+}
+
+void Mle::HandleDetachGracefullyAddressReleaseResponse(void)
+{
+    if (IsDetachingGracefully())
+    {
+        Stop();
+    }
+}
+#endif // OPENTHREAD_FTD
 
 } // namespace Mle
 } // namespace ot
