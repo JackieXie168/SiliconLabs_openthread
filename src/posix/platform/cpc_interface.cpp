@@ -69,6 +69,8 @@ CpcInterface::CpcInterface(SpinelInterface::ReceiveFrameCallback aCallback,
     , mReceiveFrameBuffer(aFrameBuffer)
     , mSockFd(-1)
 {
+    memset(&mInterfaceMetrics, 0, sizeof(mInterfaceMetrics));
+    mInterfaceMetrics.mRcpInterfaceType = OT_POSIX_RCP_BUS_CPC;
 }
 
 void CpcInterface::OnRcpReset(void)

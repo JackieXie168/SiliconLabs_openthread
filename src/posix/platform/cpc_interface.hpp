@@ -150,6 +150,14 @@ public:
     otError ResetConnection(void) { return OT_ERROR_NONE; }
 
     /**
+      * This method returns the RCP interface metrics.
+      *
+      * @returns The RCP interface metrics.
+      *
+      */
+    const otRcpInterfaceMetrics *GetRcpInterfaceMetrics(void) const { return &mInterfaceMetrics; }
+
+    /**
       * This method is called reinitialise the CPC interface if sCpcResetReq indicates that a restart
       * is required.
       */
@@ -227,6 +235,8 @@ private:
     const   uint8_t     mId = SL_CPC_ENDPOINT_15_4;
     typedef uint8_t     cpcError;
     static  bool        sCpcResetReq;
+
+    otRcpInterfaceMetrics mInterfaceMetrics;
 
     // Non-copyable, intentionally not implemented.
     CpcInterface(const CpcInterface &);
