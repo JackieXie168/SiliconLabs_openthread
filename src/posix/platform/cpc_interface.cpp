@@ -128,6 +128,7 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
     uint8_t *ptr = buffer;
     ssize_t bytesRead;
     bool block = false;
+    int  ret = 0;
 
     if(aTimeoutUs > 0)
     {
@@ -137,12 +138,15 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
         timeout.microseconds = static_cast<int>(aTimeoutUs % US_PER_S);
 
         block = true;
-        cpc_set_endpoint_option(mEndpoint, CPC_OPTION_BLOCKING, &block, sizeof(block));
-        cpc_set_endpoint_option(mEndpoint, CPC_OPTION_RX_TIMEOUT, &timeout, sizeof(timeval));
+        ret = cpc_set_endpoint_option(mEndpoint, CPC_OPTION_BLOCKING, &block, sizeof(block));
+        OT_ASSERT(ret == 0);
+        ret = cpc_set_endpoint_option(mEndpoint, CPC_OPTION_RX_TIMEOUT, &timeout, sizeof(timeout));
+        OT_ASSERT(ret == 0);
     }
     else
     {
-        cpc_set_endpoint_option(mEndpoint, CPC_OPTION_BLOCKING, &block, sizeof(block));
+        ret = cpc_set_endpoint_option(mEndpoint, CPC_OPTION_BLOCKING, &block, sizeof(block));
+        OT_ASSERT(ret == 0);
     }
 
     bytesRead = cpc_read_endpoint(mEndpoint, buffer, sizeof(buffer), mReadFlags);
