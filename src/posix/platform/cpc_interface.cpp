@@ -71,6 +71,7 @@ CpcInterface::CpcInterface(SpinelInterface::ReceiveFrameCallback aCallback,
 {
     memset(&mInterfaceMetrics, 0, sizeof(mInterfaceMetrics));
     mInterfaceMetrics.mRcpInterfaceType = OT_POSIX_RCP_BUS_CPC;
+    mCpcBusSpeed = kCpcBusSpeed;
 }
 
 void CpcInterface::OnRcpReset(void)
@@ -79,7 +80,8 @@ void CpcInterface::OnRcpReset(void)
 
 otError CpcInterface::Init(const Url::Url &aRadioUrl)
 {
-    otError error = OT_ERROR_NONE;
+    otError         error = OT_ERROR_NONE;
+    const char *    value;
     OT_UNUSED_VARIABLE(aRadioUrl);
 
     VerifyOrExit(mSockFd == -1, error = OT_ERROR_ALREADY);
@@ -97,6 +99,13 @@ otError CpcInterface::Init(const Url::Url &aRadioUrl)
       otLogCritPlat("CPC endpoint open failed");
       error = OT_ERROR_FAILED;
     }
+
+    if ((value = aRadioUrl.GetValue("cpc-bus-speed")))
+    {
+        mCpcBusSpeed = static_cast<uint32_t>(atoi(value));;
+    }
+
+    otLogCritPlat("mCpcBusSpeed = %d", mCpcBusSpeed);
 
 exit:
     return error;
