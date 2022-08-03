@@ -531,6 +531,15 @@ otError otPlatCRPCProcess(otInstance *aInstance,
 #endif
 
 #if OPENTHREAD_CONFIG_DIAG_ENABLE
+
+void otPlatDiagRadioReceiveDone(otInstance *, otRadioFrame *, otError)
+{
+}
+
+void otPlatDiagRadioTransmitDone(otInstance *, otRadioFrame *, otError)
+{
+}
+
 otError otPlatDiagProcess(otInstance *aInstance,
                           uint8_t     aArgsLength,
                           char *      aArgs[],
