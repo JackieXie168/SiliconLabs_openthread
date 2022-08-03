@@ -594,6 +594,30 @@ void otPlatDiagRadioReceived(otInstance *aInstance, otRadioFrame *aFrame, otErro
     OT_UNUSED_VARIABLE(aError);
 }
 
+otError otPlatDiagTxStreamRandom(void)
+{
+    char cmd[OPENTHREAD_CONFIG_DIAG_CMD_LINE_BUFFER_SIZE];
+
+    snprintf(cmd, sizeof(cmd), "stream random");
+    return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
+}
+
+otError otPlatDiagTxStreamTone(void)
+{
+    char cmd[OPENTHREAD_CONFIG_DIAG_CMD_LINE_BUFFER_SIZE];
+
+    snprintf(cmd, sizeof(cmd), "stream tone");
+    return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
+}
+
+otError otPlatDiagTxStreamStop(void)
+{
+    char cmd[OPENTHREAD_CONFIG_DIAG_CMD_LINE_BUFFER_SIZE];
+
+    snprintf(cmd, sizeof(cmd), "stream stop");
+    return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
+}
+
 void otPlatDiagAlarmCallback(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);

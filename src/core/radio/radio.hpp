@@ -364,6 +364,26 @@ public:
      */
     void SetPromiscuous(bool aEnable);
 
+    #if OPENTHREAD_CONFIG_DIAG_ENABLE
+    /**
+     * This method enables transmitting stream random character mode.
+     *
+     */
+    Error TxStreamRandom(void);
+
+    /**
+     * This method enables transmitting stream unmodulated tone mode.
+     *
+     */
+    Error TxStreamTone(void);
+
+    /**
+     * This method disables transmitting stream mode.
+     *
+     */
+    Error TxStreamStop(void);
+#endif // OPENTHREAD_CONFIG_DIAG_ENABLE
+
     /**
      * This method returns the current state of the radio.
      *
@@ -758,6 +778,23 @@ inline void Radio::SetPromiscuous(bool aEnable)
     otPlatRadioSetPromiscuous(GetInstancePtr(), aEnable);
 }
 
+#if OPENTHREAD_CONFIG_DIAG_ENABLE
+inline Error Radio::TxStreamRandom(void)
+{
+    return otPlatDiagTxStreamRandom();
+}
+
+inline Error Radio::TxStreamTone(void)
+{
+    return otPlatDiagTxStreamTone();
+}
+
+inline Error Radio::TxStreamStop(void)
+{
+    return otPlatDiagTxStreamStop();
+}
+#endif // OPENTHREAD_CONFIG_DIAG_ENABLE
+
 inline otRadioState Radio::GetState(void)
 {
     return otPlatRadioGetState(GetInstancePtr());
@@ -929,6 +966,25 @@ inline bool Radio::GetPromiscuous(void)
 inline void Radio::SetPromiscuous(bool)
 {
 }
+
+#if OPENTHREAD_CONFIG_DIAG_ENABLE
+
+inline Error Radio::TxStreamRandom(void)
+{
+    return kErrorNone;
+}
+
+inline Error Radio::TxStreamTone(void)
+{
+    return kErrorNone;
+}
+
+inline Error Radio::TxStreamStop(void)
+{
+    return kErrorNone;
+}
+#endif // OPENTHREAD_CONFIG_DIAG_ENABLE
+
 
 inline otRadioState Radio::GetState(void)
 {
