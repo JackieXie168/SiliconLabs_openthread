@@ -97,6 +97,20 @@ Error Diags::ProcessStream(uint8_t aArgsLength, char *aArgs[], char *aOutput, si
     {
         otPlatDiagTxStreamRandom();
     }
+    else if (strcmp(aArgs[0], "addrMatch") == 0)
+    {
+        long  value;
+        SuccessOrExit(ParseLong(aArgs[1], value));
+
+        otPlatDiagTxStreamAddrMatch(static_cast<uint8_t>(value));
+    }
+    else if (strcmp(aArgs[0], "autoAck") == 0)
+    {
+        long  value;
+        SuccessOrExit(ParseLong(aArgs[1], value));
+
+        otPlatDiagTxStreamAutoAck(static_cast<uint8_t>(value));
+    }
 
 exit:
     AppendErrorResult(error, aOutput, aOutputMaxLen);
@@ -248,6 +262,20 @@ Error Diags::ProcessStream(uint8_t aArgsLength, char *aArgs[], char *aOutput, si
     {
         SuccessOrExit(error = Get<Radio>().TxStreamRandom());
         snprintf(aOutput, aOutputMaxLen, "start transmitting random characters stream\r\nstatus 0x%02x\r\n", error);
+    }
+    else if (strcmp(aArgs[0], "addrMatch") == 0)
+    {
+        long  value;
+        SuccessOrExit(ParseLong(aArgs[1], value));
+        SuccessOrExit(error = Get<Radio>().TxStreamAddrMatch(static_cast<uint8_t>(value)));
+        snprintf(aOutput, aOutputMaxLen, "Toggle stream AddrMatch\r\nstatus 0x%02x\r\n", error);
+    }
+    else if (strcmp(aArgs[0], "autoAck") == 0)
+    {
+        long  value;
+        SuccessOrExit(ParseLong(aArgs[1], value));
+        SuccessOrExit(error = Get<Radio>().TxStreamAutoAck(static_cast<uint8_t>(value));
+        snprintf(aOutput, aOutputMaxLen, "Toggle stream AutoAck\r\nstatus 0x%02x\r\n", error);
     }
 
 exit:

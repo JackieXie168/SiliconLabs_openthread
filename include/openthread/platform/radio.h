@@ -1164,6 +1164,9 @@ otError otPlatDiagTxStreamTone(void);
  */
 otError otPlatDiagTxStreamStop(void);
 
+otError otPlatDiagTxStreamAddrMatch(uint8_t enable);
+otError otPlatDiagTxStreamAutoAck(uint8_t autoAckEnabled);
+
 #endif // #if OPENTHREAD_CONFIG_DIAG_ENABLE
 
 

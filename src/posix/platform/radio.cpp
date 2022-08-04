@@ -627,6 +627,22 @@ otError otPlatDiagTxStreamStop(void)
     return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
 }
 
+
+otError otPlatDiagTxStreamAddrMatch(uint8_t enable)
+{
+   char cmd[OPENTHREAD_CONFIG_DIAG_CMD_LINE_BUFFER_SIZE];
+
+    snprintf(cmd, sizeof(cmd), "stream addrMatch %d", enable);
+    return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
+}
+otError otPlatDiagTxStreamAutoAck(uint8_t autoAckEnabled)
+{
+   char cmd[OPENTHREAD_CONFIG_DIAG_CMD_LINE_BUFFER_SIZE];
+
+    snprintf(cmd, sizeof(cmd), "stream autoAck %d", autoAckEnabled);
+    return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
+}
+
 void otPlatDiagAlarmCallback(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);

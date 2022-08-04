@@ -382,6 +382,9 @@ public:
      *
      */
     Error TxStreamStop(void);
+
+    Error TxStreamAutoAck(uint8_t autoAckEnabled);
+    Error TxStreamAddrMatch(uint8_t enable);
 #endif // OPENTHREAD_CONFIG_DIAG_ENABLE
 
     /**
@@ -793,6 +796,17 @@ inline Error Radio::TxStreamStop(void)
 {
     return otPlatDiagTxStreamStop();
 }
+
+inline Error Radio::TxStreamAddrMatch(uint8_t enable)
+{
+    return otPlatDiagTxStreamAddrMatch( enable);
+}
+
+inline Error Radio::TxStreamAutoAck(uint8_t autoAckEnabled)
+{
+    return otPlatDiagTxStreamAutoAck( autoAckEnabled);
+}
+
 #endif // OPENTHREAD_CONFIG_DIAG_ENABLE
 
 inline otRadioState Radio::GetState(void)
@@ -980,6 +994,16 @@ inline Error Radio::TxStreamTone(void)
 }
 
 inline Error Radio::TxStreamStop(void)
+{
+    return kErrorNone;
+}
+
+inline Error Radio::TxStreamAddrMatch(uint8_t enable)
+{
+    return kErrorNone;
+}
+
+inline Error Radio::TxStreamAutoAck(uint8_t autoAckEnabled)
 {
     return kErrorNone;
 }
