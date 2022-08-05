@@ -1083,7 +1083,7 @@ void RadioSpinel<InterfaceType, ProcessContextType>::RadioReceive(void)
 #if OPENTHREAD_CONFIG_DIAG_ENABLE
     if (otPlatDiagModeGet())
     {
-      //  otPlatDiagRadioReceiveDone(mInstance, &mRxRadioFrame, OT_ERROR_NONE);
+        otPlatDiagRadioReceiveDone(mInstance, &mRxRadioFrame, OT_ERROR_NONE);
     }
     else
 #endif
@@ -1103,7 +1103,7 @@ void RadioSpinel<InterfaceType, ProcessContextType>::TransmitDone(otRadioFrame *
 #if OPENTHREAD_CONFIG_DIAG_ENABLE
     if (otPlatDiagModeGet())
     {
-       // otPlatDiagRadioTransmitDone(mInstance, aFrame, aError);
+        otPlatDiagRadioTransmitDone(mInstance, aFrame, aError);
     }
     else
 #endif

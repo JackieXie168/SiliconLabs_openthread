@@ -270,7 +270,7 @@ void platformAlarmProcess(otInstance *aInstance)
 
             if (otPlatDiagModeGet())
             {
-            //    otPlatDiagAlarmFired(aInstance);
+                otPlatDiagAlarmFired(aInstance);
             }
             else
 #endif
