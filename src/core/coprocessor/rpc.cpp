@@ -86,6 +86,9 @@ using ot::Encoding::BigEndian::HostSwap16;
 const RPC::Command RPC::sCommands[] = {
     {"help-crpc", otCRPCProcessHelp},
 };
+
+char     RPC::mStaticOutputBuffer[RPC::kMaxStaticOutputBufferSize];
+
 #else
 
 RPC::Arg RPC::mCachedCommands[RPC::kMaxCommands];
