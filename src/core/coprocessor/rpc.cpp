@@ -145,15 +145,16 @@ exit:
 void RPC::ProcessLine(const char *aString, char *aOutput, size_t aOutputMaxLen)
 {
     Error   error = kErrorNone;
-    char    buffer[kMaxCommandBuffer];
+    char    temp_command_buffer[kMaxCommandLineBufferSize];
     char *  args[kMaxArgs];
     uint8_t argCount = 0;
 
-    VerifyOrExit(StringLength(aString, kMaxCommandBuffer) < kMaxCommandBuffer, error = kErrorNoBufs);
+    VerifyOrExit(StringLength(aString, kMaxCommandLineBufferSize) < kMaxCommandLineBufferSize, error = kErrorNoBufs);
 
-    strcpy(buffer, aString);
+    strcpy(temp_command_buffer, aString);
     argCount = kMaxArgs;
-    error    = ParseCmd(buffer, argCount, args);
+    // Parse the argCount and arguments
+    error    = ParseCmd(temp_command_buffer, argCount, args);
 
 exit:
 

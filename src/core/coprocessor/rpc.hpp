@@ -292,8 +292,8 @@ public:
     enum
     {
         kMaxCommands              = OPENTHREAD_CONFIG_COPROCESSOR_RPC_COMMANDS_MAX,
+        kMaxCommandLineBufferSize = OPENTHREAD_CONFIG_COPROCESSOR_RPC_CMD_LINE_BUFFER_SIZE,
         kMaxArgs                  = OPENTHREAD_CONFIG_COPROCESSOR_RPC_CMD_LINE_ARGS_MAX,
-        kMaxCommandBuffer         = OPENTHREAD_CONFIG_COPROCESSOR_RPC_OUTPUT_BUFFER_SIZE,
         kCommandCacheBufferLength = OPENTHREAD_CONFIG_COPROCESSOR_RPC_COMMAND_CACHE_BUFFER_SIZE,
     };
 
