@@ -327,6 +327,14 @@ int RPC::OutputFormatV(const char *aFormat, va_list aArguments)
     if (rval > 0)
     {
         mOutputBufferCount += static_cast<size_t>(rval);
+
+        // NOTE: vsnprintf returns "the number of bytes that would have been written if the buffer had enough space"
+        //       It does NOT return the actual number of bytes written.
+        //
+        //       Because of this, we need to set mOutputBufferCount to a maximum value of mOutputBufferMaxLen
+        if (mOutputBufferCount > mOutputBufferMaxLen) {
+            mOutputBufferCount = mOutputBufferMaxLen;
+        }
     }
 exit:
     return rval;
