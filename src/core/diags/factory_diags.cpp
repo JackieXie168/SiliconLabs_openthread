@@ -274,7 +274,7 @@ Error Diags::ProcessStream(uint8_t aArgsLength, char *aArgs[], char *aOutput, si
     {
         long  value;
         SuccessOrExit(ParseLong(aArgs[1], value));
-        SuccessOrExit(error = Get<Radio>().TxStreamAutoAck(static_cast<uint8_t>(value));
+        SuccessOrExit(error = Get<Radio>().TxStreamAutoAck(static_cast<uint8_t>(value)));
         snprintf(aOutput, aOutputMaxLen, "Toggle stream AutoAck\r\nstatus 0x%02x\r\n", error);
     }
 
