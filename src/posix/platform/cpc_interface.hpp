@@ -134,7 +134,7 @@ public:
      * @returns   Bus speed in bits/second.
      *
      */
-    uint32_t GetBusSpeed(void) const { return 0; }
+    uint32_t GetBusSpeed(void) const { return mCpcBusSpeed; }
 
     /**
      * This method is called when RCP failure detected and resets internal states of the interface.
@@ -212,7 +212,8 @@ private:
         kMaxWaitTime        = 2000, ///< Maximum wait time in Milliseconds for socket to become writable (see `SendFrame`).
         kMaxSleepDuration   = 1000,
         kMaxRestartAttempts = 10,
-        kResetCMDSize       = 4
+        kResetCMDSize       = 4,
+        kCpcBusSpeed        = 115200,
     };
 
     Spinel::SpinelInterface::ReceiveFrameCallback mReceiveFrameCallback;
@@ -224,6 +225,7 @@ private:
     cpc_endpoint_t      mEndpoint;
     cpc_read_flags_t    mReadFlags;
     cpc_write_flags_t   mWriteFlags;
+    uint32_t            mCpcBusSpeed;
 
     static void HandleSecondaryReset(void);
     static void SetCpcResetReq(bool state) { sCpcResetReq = state; }
