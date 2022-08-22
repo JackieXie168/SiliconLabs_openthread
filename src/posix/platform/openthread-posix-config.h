@@ -86,12 +86,16 @@
 #define OT_POSIX_RCP_BUS_SPI 2
 
 /**
- * RCP bus UART.
- *
- * @note This value is also for simulated UART bus.
+ * RCP bus defined by vendors.
  *
  */
-#define OT_POSIX_RCP_BUS_CPC 3
+#define OT_POSIX_RCP_BUS_VENDOR 3
+
+/**
+ * RCP bus CPC.
+ *
+ */
+#define OT_POSIX_RCP_BUS_CPC 4
 
 /**
  * @def OPENTHREAD_POSIX_CONFIG_RCP_BUS
