@@ -74,6 +74,7 @@ MLR                       ?= 0
 MTD_NETDIAG               ?= 0
 MULTIPAN_RCP              ?= 0
 MULTIPLE_INSTANCE         ?= 0
+NAT64_TRANSLATOR          ?= 0
 NEIGHBOR_DISCOVERY_AGENT  ?= 0
 NETDATA_PUBLISHER         ?= 0
 OTNS                      ?= 0
@@ -120,6 +121,10 @@ endif
 
 ifeq ($(BORDER_ROUTING_NAT64),1)
 COMMONCFLAGS		       += -DOPENTHREAD_CONFIG_BORDER_ROUTING_NAT64_ENABLE=1
+endif
+
+ifeq ($(NAT64_TRANSLATOR),1)
+COMMONCFLAGS		       += -DOPENTHREAD_CONFIG_NAT64_TRANSLATOR_ENABLE=1
 endif
 
 ifeq ($(COAP),1)

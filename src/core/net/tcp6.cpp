@@ -43,6 +43,7 @@
 #include "common/instance.hpp"
 #include "common/locator_getters.hpp"
 #include "common/log.hpp"
+#include "common/min_max.hpp"
 #include "common/random.hpp"
 #include "net/checksum.hpp"
 #include "net/ip6.hpp"
@@ -233,7 +234,11 @@ Error Tcp::Endpoint::ReceiveByReference(const otLinkedBuffer *&aBuffer)
 
 Error Tcp::Endpoint::ReceiveContiguify(void)
 {
-    return kErrorNotImplemented;
+    struct tcpcb &tp = GetTcb();
+
+    cbuf_contiguify(&tp.recvbuf, tp.reassbmp);
+
+    return kErrorNone;
 }
 
 Error Tcp::Endpoint::CommitReceive(size_t aNumBytes, uint32_t aFlags)
@@ -431,7 +436,7 @@ bool Tcp::Endpoint::FirePendingTimers(TimeMilli aNow, bool &aHasFutureTimer, Tim
             else
             {
                 aHasFutureTimer       = true;
-                aEarliestFutureExpiry = OT_MIN(aEarliestFutureExpiry, expiry);
+                aEarliestFutureExpiry = Min(aEarliestFutureExpiry, expiry);
             }
         }
     }

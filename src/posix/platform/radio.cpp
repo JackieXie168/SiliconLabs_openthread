@@ -49,17 +49,21 @@ static ot::Spinel::RadioSpinel<ot::Posix::HdlcInterface, VirtualTimeEvent> sRadi
 static ot::Spinel::RadioSpinel<ot::Posix::HdlcInterface, RadioProcessContext> sRadioSpinel;
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME
 
-#elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_CPC
-#include "cpc_interface.hpp"
-
-static ot::Spinel::RadioSpinel<ot::Posix::CpcInterface, RadioProcessContext> sRadioSpinel;
-
 #elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_SPI
 #include "spi_interface.hpp"
 
 static ot::Spinel::RadioSpinel<ot::Posix::SpiInterface, RadioProcessContext> sRadioSpinel;
+#elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_VENDOR
+#include "vendor_interface.hpp"
+
+static ot::Spinel::RadioSpinel<ot::Posix::VendorInterface, RadioProcessContext> sRadioSpinel;
+#elif OPENTHREAD_POSIX_CONFIG_RCP_BUS == OT_POSIX_RCP_BUS_CPC
+#include "cpc_interface.hpp"
+
+static ot::Spinel::RadioSpinel<ot::Posix::CpcInterface, RadioProcessContext> sRadioSpinel;
 #else
-#error "OPENTHREAD_POSIX_CONFIG_RCP_BUS only allows OT_POSIX_RCP_BUS_UART, OT_POSIX_RCP_BUS_SPI and OT_POSIX_RCP_CPC!"
+#error "OPENTHREAD_POSIX_CONFIG_RCP_BUS only allows OT_POSIX_RCP_BUS_UART, OT_POSIX_RCP_BUS_SPI, " \
+    "OT_POSIX_RCP_CPC and OT_POSIX_RCP_BUS_VENDOR!"
 #endif
 
 namespace ot {
@@ -617,7 +621,6 @@ otError otPlatDiagTxStreamStop(void)
     snprintf(cmd, sizeof(cmd), "stream stop");
     return (sRadioSpinel.PlatDiagProcess(cmd, nullptr, 0));
 }
-
 
 otError otPlatDiagTxStreamAddrMatch(uint8_t enable)
 {
