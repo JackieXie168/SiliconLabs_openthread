@@ -40,7 +40,7 @@
 #include "common/debug.hpp"
 #include "common/instance.hpp"
 #include "common/locator_getters.hpp"
-#include "common/min_max.hpp"
+#include "common/num_utils.hpp"
 #include "common/string.hpp"
 #include "common/timer.hpp"
 #include "net/ip6_headers.hpp"
@@ -129,7 +129,7 @@ void HistoryTracker::RecordMessage(const Message &aMessage, const Mac::Address &
     entry->mChecksum             = headers.GetChecksum();
     entry->mIpProto              = headers.GetIpProto();
     entry->mIcmp6Type            = headers.IsIcmp6() ? headers.GetIcmpHeader().GetType() : 0;
-    entry->mAveRxRss             = (aType == kRxMessage) ? aMessage.GetRssAverager().GetAverage() : kInvalidRss;
+    entry->mAveRxRss             = (aType == kRxMessage) ? aMessage.GetRssAverager().GetAverage() : Radio::kInvalidRssi;
     entry->mLinkSecurity         = aMessage.IsLinkSecurityEnabled();
     entry->mTxSuccess            = (aType == kTxMessage) ? aMessage.GetTxSuccess() : true;
     entry->mPriority             = aMessage.GetPriority();

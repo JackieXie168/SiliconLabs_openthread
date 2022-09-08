@@ -138,6 +138,9 @@ Interpreter::Interpreter(Instance *aInstance, otCliOutputCallback aCallback, voi
 #if OPENTHREAD_CONFIG_TMF_ANYCAST_LOCATOR_ENABLE
     , mLocateInProgress(false)
 #endif
+#if OPENTHREAD_CONFIG_MLE_LINK_METRICS_INITIATOR_ENABLE
+    , mLinkMetricsQueryInProgress(false)
+#endif
 #endif // OPENTHREAD_FTD || OPENTHREAD_MTD
 {
 #if OPENTHREAD_FTD
@@ -594,7 +597,7 @@ template <> otError Interpreter::Process<Cmd("br")>(Arg aArgs[])
         SuccessOrExit(error = otBorderRoutingGetOnLinkPrefix(GetInstancePtr(), &onLinkPrefix));
         OutputIp6PrefixLine(onLinkPrefix);
     }
-#if OPENTHREAD_CONFIG_BORDER_ROUTING_NAT64_ENABLE
+#if OPENTHREAD_CONFIG_NAT64_BORDER_ROUTING_ENABLE
     /**
      * @cli br nat64prefix
      * @code
@@ -631,7 +634,7 @@ template <> otError Interpreter::Process<Cmd("br")>(Arg aArgs[])
         OutputIp6Prefix(prefix);
         OutputLine(" prf:%s", PreferenceToString(preference));
     }
-#endif // OPENTHREAD_CONFIG_BORDER_ROUTING_NAT64_ENABLE
+#endif // OPENTHREAD_CONFIG_NAT64_BORDER_ROUTING_ENABLE
     /**
      * @cli br rioprf (high,med,low)
      * @code
@@ -1724,6 +1727,20 @@ template <> otError Interpreter::Process<Cmd("child")>(Arg aArgs[])
     {
         uint16_t maxChildren;
 
+        /**
+         * @cli child table
+         * @code
+         * child table
+         * | ID  | RLOC16 | Timeout    | Age        | LQ In | C_VN |R|D|N|Ver|CSL|QMsgCnt| Extended MAC     |
+         * +-----+--------+------------+------------+-------+------+-+-+-+---+---+-------+------------------+
+         * |   1 | 0xc801 |        240 |         24 |     3 |  131 |1|0|0|  3| 0 |     0 | 4ecede68435358ac |
+         * |   2 | 0xc802 |        240 |          2 |     3 |  131 |0|0|0|  3| 1 |     0 | a672a601d2ce37d8 |
+         * Done
+         * @endcode
+         * @par
+         * Prints a table of the attached children.
+         * @sa otThreadGetChildInfoByIndex
+         */
         if (isTable)
         {
             static const char *const kChildTableTitles[] = {
@@ -1766,6 +1783,17 @@ template <> otError Interpreter::Process<Cmd("child")>(Arg aArgs[])
                 OutputExtAddress(childInfo.mExtAddress);
                 OutputLine(" |");
             }
+            /**
+             * @cli child list
+             * @code
+             * child list
+             * 1 2 3 6 7 8
+             * Done
+             * @endcode
+             * @par
+             * Returns a list of attached Child IDs.
+             * @sa otThreadGetChildInfoByIndex
+             */
             else
             {
                 OutputFormat("%d ", childInfo.mChildId);
@@ -1779,6 +1807,25 @@ template <> otError Interpreter::Process<Cmd("child")>(Arg aArgs[])
     SuccessOrExit(error = aArgs[0].ParseAsUint16(childId));
     SuccessOrExit(error = otThreadGetChildInfoById(GetInstancePtr(), childId, &childInfo));
 
+    /**
+     * @cli child (id)
+     * @code
+     * child 1
+     * Child ID: 1
+     * Rloc: 9c01
+     * Ext Addr: e2b3540590b0fd87
+     * Mode: rn
+     * Net Data: 184
+     * Timeout: 100
+     * Age: 0
+     * Link Quality In: 3
+     * RSSI: -20
+     * Done
+     * @endcode
+     * @cparam child @ca{child-id}
+     * @par api_copy
+     * #otThreadGetChildInfoById
+     */
     OutputLine("Child ID: %d", childInfo.mChildId);
     OutputLine("Rloc: %04x", childInfo.mRloc16);
     OutputFormat("Ext Addr: ");
@@ -1801,6 +1848,17 @@ template <> otError Interpreter::Process<Cmd("childip")>(Arg aArgs[])
 {
     otError error = OT_ERROR_NONE;
 
+    /**
+     * @cli childip
+     * @code
+     * childip
+     * 3401: fdde:ad00:beef:0:3037:3e03:8c5f:bc0c
+     * Done
+     * @endcode
+     * @par
+     * Gets a list of IP addresses stored for MTD children.
+     * @sa otThreadGetChildNextIp6Address
+     */
     if (aArgs[0].IsEmpty())
     {
         uint16_t maxChildren = otThreadGetMaxAllowedChildren(GetInstancePtr());
@@ -1827,11 +1885,31 @@ template <> otError Interpreter::Process<Cmd("childip")>(Arg aArgs[])
             }
         }
     }
+    /**
+     * @cli childip max
+     * @code
+     * childip max
+     * 4
+     * Done
+     * @endcode
+     * @par api_copy
+     * #otThreadGetMaxChildIpAddresses
+     */
     else if (aArgs[0] == "max")
     {
 #if !OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
         error = ProcessGet(aArgs + 1, otThreadGetMaxChildIpAddresses);
 #else
+        /**
+         * @cli childip max (set)
+         * @code
+         * childip max 2
+         * Done
+         * @endcode
+         * @cparam childip max @ca{count}
+         * @par api_copy
+         * #otThreadSetMaxChildIpAddresses
+         */
         error = ProcessGetSet(aArgs + 1, otThreadGetMaxChildIpAddresses, otThreadSetMaxChildIpAddresses);
 #endif
     }
@@ -1843,8 +1921,28 @@ template <> otError Interpreter::Process<Cmd("childip")>(Arg aArgs[])
     return error;
 }
 
+/**
+ * @cli childmax
+ * @code
+ * childmax
+ * 5
+ * Done
+ * @endcode
+ * @par api_copy
+ * #otThreadGetMaxAllowedChildren
+ */
 template <> otError Interpreter::Process<Cmd("childmax")>(Arg aArgs[])
 {
+    /**
+     * @cli childmax (set)
+     * @code
+     * childmax 2
+     * Done
+     * @endcode
+     * @cparam childmax @ca{count}
+     * @par api_copy
+     * #otThreadSetMaxAllowedChildren
+     */
     return ProcessGetSet(aArgs, otThreadGetMaxAllowedChildren, otThreadSetMaxAllowedChildren);
 }
 #endif // OPENTHREAD_FTD
@@ -1854,13 +1952,56 @@ template <> otError Interpreter::Process<Cmd("childsupervision")>(Arg aArgs[])
 {
     otError error = OT_ERROR_INVALID_ARGS;
 
+    /**
+     * @cli childsupervision checktimeout
+     * @code
+     * childsupervision checktimeout
+     * 30
+     * Done
+     * @endcode
+     * @par api_copy
+     * #otChildSupervisionGetCheckTimeout
+     */
     if (aArgs[0] == "checktimeout")
     {
+        /** @cli childsupervision checktimeout (set)
+         * @code
+         * childsupervision checktimeout 30
+         * Done
+         * @endcode
+         * @cparam childsupervision checktimeout @ca{timeout-seconds}
+         * @par api_copy
+         * #otChildSupervisionSetCheckTimeout
+         */
         error = ProcessGetSet(aArgs + 1, otChildSupervisionGetCheckTimeout, otChildSupervisionSetCheckTimeout);
     }
 #if OPENTHREAD_FTD
+    /**
+     * @cli childsupervision interval
+     * @code
+     * childsupervision interval
+     * 30
+     * Done
+     * @endcode
+     * @par
+     * This command can only be used with FTD devices.
+     * @par api_copy
+     * #otChildSupervisionGetInterval
+     */
     else if (aArgs[0] == "interval")
     {
+        /**
+         * @cli childsupervision interval (set)
+         * @code
+         * childsupervision interval 30
+         * Done
+         * @endcode
+         * @cparam childsupervision interval @ca{interval-seconds}
+         * @par
+         * This command can only be used with FTD devices.
+         * @par api_copy
+         * #otChildSupervisionSetInterval
+         */
         error = ProcessGetSet(aArgs + 1, otChildSupervisionGetInterval, otChildSupervisionSetInterval);
     }
 #endif
@@ -1869,8 +2010,26 @@ template <> otError Interpreter::Process<Cmd("childsupervision")>(Arg aArgs[])
 }
 #endif // OPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE
 
+/** @cli childtimeout
+ * @code
+ * childtimeout
+ * 300
+ * Done
+ * @endcode
+ * @par api_copy
+ * #otThreadGetChildTimeout
+ */
 template <> otError Interpreter::Process<Cmd("childtimeout")>(Arg aArgs[])
 {
+    /** @cli childtimeout (set)
+     * @code
+     * childtimeout 300
+     * Done
+     * @endcode
+     * @cparam childtimeout @ca{timeout-seconds}
+     * @par api_copy
+     * #otThreadSetChildTimeout
+     */
     return ProcessGetSet(aArgs, otThreadGetChildTimeout, otThreadSetChildTimeout);
 }
 
@@ -3320,12 +3479,11 @@ void Interpreter::HandleLinkMetricsReport(const otIp6Address *       aAddress,
 
 void Interpreter::PrintLinkMetricsValue(const otLinkMetricsValues *aMetricsValues)
 {
-    const char kLinkMetricsTypeCount[]   = "(Count/Summation)";
-    const char kLinkMetricsTypeAverage[] = "(Exponential Moving Average)";
+    static const char kLinkMetricsTypeAverage[] = "(Exponential Moving Average)";
 
     if (aMetricsValues->mMetrics.mPduCount)
     {
-        OutputLine(" - PDU Counter: %d %s", aMetricsValues->mPduCountValue, kLinkMetricsTypeCount);
+        OutputLine(" - PDU Counter: %d (Count/Summation)", aMetricsValues->mPduCountValue);
     }
 
     if (aMetricsValues->mMetrics.mLqi)
@@ -3358,6 +3516,12 @@ void Interpreter::HandleLinkMetricsReport(const otIp6Address *       aAddress,
     else
     {
         OutputLine("Link Metrics Report, status: %s", LinkMetricsStatusToStr(aStatus));
+    }
+
+    if (mLinkMetricsQueryInProgress)
+    {
+        mLinkMetricsQueryInProgress = false;
+        OutputResult(OT_ERROR_NONE);
     }
 }
 
@@ -3433,28 +3597,37 @@ template <> otError Interpreter::Process<Cmd("linkmetrics")>(Arg aArgs[])
     if (aArgs[0] == "query")
     {
         otIp6Address  address;
+        bool          isSingle;
+        bool          blocking;
+        uint8_t       seriesId;
         otLinkMetrics linkMetrics;
 
         SuccessOrExit(error = aArgs[1].ParseAsIp6Address(address));
 
         if (aArgs[2] == "single")
         {
-            VerifyOrExit(!aArgs[3].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
+            isSingle = true;
             SuccessOrExit(error = ParseLinkMetricsFlags(linkMetrics, aArgs[3]));
-            error = otLinkMetricsQuery(GetInstancePtr(), &address, /* aSeriesId */ 0, &linkMetrics,
-                                       &Interpreter::HandleLinkMetricsReport, this);
         }
         else if (aArgs[2] == "forward")
         {
-            uint8_t seriesId;
-
+            isSingle = false;
             SuccessOrExit(error = aArgs[3].ParseAsUint8(seriesId));
-            error = otLinkMetricsQuery(GetInstancePtr(), &address, seriesId, nullptr,
-                                       &Interpreter::HandleLinkMetricsReport, this);
         }
         else
         {
-            error = OT_ERROR_INVALID_ARGS;
+            ExitNow(error = OT_ERROR_INVALID_ARGS);
+        }
+
+        blocking = (aArgs[4] == "block");
+
+        SuccessOrExit(error = otLinkMetricsQuery(GetInstancePtr(), &address, isSingle ? 0 : seriesId,
+                                                 isSingle ? &linkMetrics : nullptr, HandleLinkMetricsReport, this));
+
+        if (blocking)
+        {
+            mLinkMetricsQueryInProgress = true;
+            error                       = OT_ERROR_PENDING;
         }
     }
     else if (aArgs[0] == "mgmt")
@@ -3481,6 +3654,8 @@ exit:
 otError Interpreter::ParseLinkMetricsFlags(otLinkMetrics &aLinkMetrics, const Arg &aFlags)
 {
     otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(!aFlags.IsEmpty(), error = OT_ERROR_INVALID_ARGS);
 
     memset(&aLinkMetrics, 0, sizeof(aLinkMetrics));
 
@@ -3566,8 +3741,8 @@ otError Interpreter::ProcessLinkMetricsMgmt(Arg aArgs[])
 
         if (!clear)
         {
-            VerifyOrExit(!aArgs[4].IsEmpty() && aArgs[5].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
             SuccessOrExit(error = ParseLinkMetricsFlags(linkMetrics, aArgs[4]));
+            VerifyOrExit(aArgs[5].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
         }
 
         error = otLinkMetricsConfigForwardTrackingSeries(GetInstancePtr(), &address, seriesId, seriesFlags,
@@ -3588,7 +3763,6 @@ otError Interpreter::ProcessLinkMetricsMgmt(Arg aArgs[])
         else if (aArgs[2] == "register")
         {
             enhAckFlags = OT_LINK_METRICS_ENH_ACK_REGISTER;
-            VerifyOrExit(!aArgs[3].IsEmpty(), error = OT_ERROR_INVALID_ARGS);
             SuccessOrExit(error = ParseLinkMetricsFlags(linkMetrics, aArgs[3]));
 #if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
             if (aArgs[4] == "r")

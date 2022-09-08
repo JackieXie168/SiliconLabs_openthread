@@ -108,8 +108,6 @@ class SubMac : public InstanceLocator, private NonCopyable
     friend class LinkRaw;
 
 public:
-    static constexpr int8_t kInvalidRssiValue = 127; ///< Invalid Received Signal Strength Indicator (RSSI) value.
-
     /**
      * This class defines the callbacks notifying `SubMac` user of changes and events.
      *
@@ -189,7 +187,7 @@ public:
         /**
          * This method notifies user of `SubMac` that energy scan is complete.
          *
-         * @param[in]  aMaxRssi  Maximum RSSI seen on the channel, or `SubMac::kInvalidRssiValue` if failed.
+         * @param[in]  aMaxRssi  Maximum RSSI seen on the channel, or `Radio::kInvalidRssi` if failed.
          *
          */
         void EnergyScanDone(int8_t aMaxRssi);
@@ -370,7 +368,7 @@ public:
     /**
      * This method gets the most recent RSSI measurement.
      *
-     * @returns The RSSI in dBm when it is valid. `kInvalidRssiValue` when RSSI is invalid.
+     * @returns The RSSI in dBm when it is valid. `Radio::kInvalidRssi` when RSSI is invalid.
      *
      */
     int8_t GetRssi(void) const;
@@ -395,7 +393,7 @@ public:
      * @returns The noise floor value in dBm.
      *
      */
-    int8_t GetNoiseFloor(void);
+    int8_t GetNoiseFloor(void) const;
 
 #if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
     /**
