@@ -936,7 +936,7 @@ otError NcpBase::HandlePendingEnergyScan(PendingCommandEntry *entry)
 exit:
     if (error != OT_ERROR_NONE)
     {
-        LinkRawEnergyScanDone(ot::Mac::SubMac::kInvalidRssiValue);
+        LinkRawEnergyScanDone(Radio::kInvalidRssi);
     }
     return error;
 }
