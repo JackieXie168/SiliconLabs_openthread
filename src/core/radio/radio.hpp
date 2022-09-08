@@ -103,6 +103,8 @@ public:
     static constexpr uint32_t kSupportedChannelPages = (1 << OPENTHREAD_CONFIG_PLATFORM_RADIO_PROPRIETARY_CHANNEL_PAGE);
 #endif
 
+    static constexpr int8_t kInvalidRssi = OT_RADIO_RSSI_INVALID; ///< Invalid RSSI value.
+
     static_assert((OPENTHREAD_CONFIG_RADIO_2P4GHZ_OQPSK_SUPPORT || OPENTHREAD_CONFIG_RADIO_915MHZ_OQPSK_SUPPORT ||
                    OPENTHREAD_CONFIG_PLATFORM_RADIO_PROPRIETARY_SUPPORT),
                   "OPENTHREAD_CONFIG_RADIO_2P4GHZ_OQPSK_SUPPORT "
@@ -236,7 +238,7 @@ public:
      * @returns The radio receive sensitivity value in dBm.
      *
      */
-    int8_t GetReceiveSensitivity(void);
+    int8_t GetReceiveSensitivity(void) const;
 
 #if OPENTHREAD_RADIO
     /**
@@ -679,7 +681,7 @@ public:
     }
 
 private:
-    otInstance *GetInstancePtr(void) { return reinterpret_cast<otInstance *>(&InstanceLocator::GetInstance()); }
+    otInstance *GetInstancePtr(void) const { return reinterpret_cast<otInstance *>(&InstanceLocator::GetInstance()); }
 
     Callbacks mCallbacks;
 };
@@ -718,7 +720,7 @@ inline otRadioCaps Radio::GetCaps(void)
     return otPlatRadioGetCaps(GetInstancePtr());
 }
 
-inline int8_t Radio::GetReceiveSensitivity(void)
+inline int8_t Radio::GetReceiveSensitivity(void) const
 {
     return otPlatRadioGetReceiveSensitivity(GetInstancePtr());
 }
@@ -921,7 +923,7 @@ inline otRadioCaps Radio::GetCaps(void)
     return OT_RADIO_CAPS_ACK_TIMEOUT | OT_RADIO_CAPS_CSMA_BACKOFF | OT_RADIO_CAPS_TRANSMIT_RETRIES;
 }
 
-inline int8_t Radio::GetReceiveSensitivity(void)
+inline int8_t Radio::GetReceiveSensitivity(void) const
 {
     return -110;
 }
@@ -1074,7 +1076,7 @@ inline Error Radio::Transmit(Mac::TxFrame &)
 
 inline int8_t Radio::GetRssi(void)
 {
-    return OT_RADIO_RSSI_INVALID;
+    return kInvalidRssi;
 }
 
 inline Error Radio::EnergyScan(uint8_t, uint16_t)

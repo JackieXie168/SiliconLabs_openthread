@@ -461,10 +461,10 @@ HEADERS_COMMON                                  = \
     common/log.hpp                                \
     common/logging.hpp                            \
     common/message.hpp                            \
-    common/min_max.hpp                            \
     common/new.hpp                                \
     common/non_copyable.hpp                       \
     common/notifier.hpp                           \
+    common/num_utils.hpp                          \
     common/numeric_limits.hpp                     \
     common/owned_ptr.hpp                          \
     common/owning_list.hpp                        \
@@ -513,6 +513,7 @@ HEADERS_COMMON                                  = \
     config/mac.h                                  \
     config/misc.h                                 \
     config/mle.h                                  \
+    config/nat64.h                                \
     config/netdata_publisher.h                    \
     config/openthread-core-config-check.h         \
     config/parent_search.h                        \
