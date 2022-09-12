@@ -221,7 +221,9 @@ NcpBase::NcpBase(Instance *aInstance)
     , mDiscoveryScanEnableFiltering(false)
     , mDiscoveryScanPanId(0xffff)
 #if OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE
+#if OPENTHREAD_RADIO || OPENTHREAD_CONFIG_LINK_RAW_ENABLE
     , mHandlePendingCommandsTask(*aInstance, NcpBase::HandlePendingCommands)
+#endif
 #endif
     , mUpdateChangedPropsTask(*aInstance, NcpBase::UpdateChangedProps)
     , mThreadChangedFlags(0)
