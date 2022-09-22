@@ -96,6 +96,9 @@ Server::Server(Instance &aInstance)
     , mAddressMode(kDefaultAddressMode)
     , mAnycastSequenceNumber(0)
     , mHasRegisteredAnyService(false)
+#if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
+    , mAutoEnable(false)
+#endif
 {
     IgnoreError(SetDomain(kDefaultDomain));
 }
@@ -134,40 +137,70 @@ exit:
 
 void Server::SetEnabled(bool aEnabled)
 {
+#if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
+    mAutoEnable = false;
+#endif
+
     if (aEnabled)
     {
-        VerifyOrExit(mState == kStateDisabled);
-        mState = kStateStopped;
-
-        // Request publishing of "DNS/SRP Address Service" entry in the
-        // Thread Network Data based of `mAddressMode`. Then wait for
-        // callback `HandleNetDataPublisherEntryChange()` from the
-        // `Publisher` to start the SRP server.
-
-        switch (mAddressMode)
-        {
-        case kAddressModeUnicast:
-            SelectPort();
-            Get<NetworkData::Publisher>().PublishDnsSrpServiceUnicast(mPort);
-            break;
-
-        case kAddressModeAnycast:
-            mPort = kAnycastAddressModePort;
-            Get<NetworkData::Publisher>().PublishDnsSrpServiceAnycast(mAnycastSequenceNumber);
-            break;
-        }
+        Enable();
     }
     else
     {
-        VerifyOrExit(mState != kStateDisabled);
-        Get<NetworkData::Publisher>().UnpublishDnsSrpService();
-        Stop();
-        mState = kStateDisabled;
+        Disable();
+    }
+}
+
+void Server::Enable(void)
+{
+    VerifyOrExit(mState == kStateDisabled);
+    mState = kStateStopped;
+
+    // Request publishing of "DNS/SRP Address Service" entry in the
+    // Thread Network Data based of `mAddressMode`. Then wait for
+    // callback `HandleNetDataPublisherEntryChange()` from the
+    // `Publisher` to start the SRP server.
+
+    switch (mAddressMode)
+    {
+    case kAddressModeUnicast:
+        SelectPort();
+        Get<NetworkData::Publisher>().PublishDnsSrpServiceUnicast(mPort);
+        break;
+
+    case kAddressModeAnycast:
+        mPort = kAnycastAddressModePort;
+        Get<NetworkData::Publisher>().PublishDnsSrpServiceAnycast(mAnycastSequenceNumber);
+        break;
     }
 
 exit:
     return;
 }
+
+void Server::Disable(void)
+{
+    VerifyOrExit(mState != kStateDisabled);
+    Get<NetworkData::Publisher>().UnpublishDnsSrpService();
+    Stop();
+    mState = kStateDisabled;
+
+exit:
+    return;
+}
+
+#if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
+void Server::SetAutoEnableMode(bool aEnabled)
+{
+    VerifyOrExit(mAutoEnable != aEnabled);
+    mAutoEnable = aEnabled;
+
+    Get<BorderRouter::RoutingManager>().HandleSrpServerAutoEnableMode();
+
+exit:
+    return;
+}
+#endif
 
 Server::TtlConfig::TtlConfig(void)
 {
@@ -1296,6 +1329,48 @@ exit:
 
 void Server::InformUpdateHandlerOrCommit(Error aError, Host &aHost, const MessageMetadata &aMetadata)
 {
+#if OT_SHOULD_LOG_AT(OT_LOG_LEVEL_INFO)
+    if (aError == kErrorNone)
+    {
+        uint8_t             numAddrs;
+        const Ip6::Address *addrs;
+
+        LogInfo("Processed DNS update info");
+        LogInfo("    Host:%s", aHost.GetFullName());
+        LogInfo("    Lease:%u, key-lease:%u, ttl:%u", aHost.GetLease(), aHost.GetKeyLease(), aHost.GetTtl());
+
+        addrs = aHost.GetAddresses(numAddrs);
+
+        if (numAddrs == 0)
+        {
+            LogInfo("    No host address");
+        }
+        else
+        {
+            LogInfo("    %d host address(es):", numAddrs);
+
+            for (; numAddrs > 0; addrs++, numAddrs--)
+            {
+                LogInfo("      %s", addrs->ToString().AsCString());
+            }
+        }
+
+        for (const Service &service : aHost.GetServices())
+        {
+            char subLabel[Dns::Name::kMaxLabelSize];
+
+            IgnoreError(service.GetServiceSubTypeLabel(subLabel, sizeof(subLabel)));
+
+            LogInfo("    %s service '%s'%s%s", service.IsDeleted() ? "Deleting" : "Adding", service.GetInstanceName(),
+                    service.IsSubType() ? " subtype:" : "", subLabel);
+        }
+    }
+    else
+    {
+        LogInfo("Error %s processing received DNS update", ErrorToString(aError));
+    }
+#endif // OT_SHOULD_LOG_AT(OT_LOG_LEVEL_INFO)
+
     if ((aError == kErrorNone) && (mServiceUpdateHandler != nullptr))
     {
         UpdateMetadata *update = UpdateMetadata::Allocate(GetInstance(), aHost, aMetadata);
@@ -1740,7 +1815,7 @@ void Server::Service::Log(Action aAction) const
         "Update existing",           // (1) kUpdateExisting
         "Remove but retain name of", // (2) kRemoveButRetainName
         "Fully remove",              // (3) kFullyRemove
-        "LEASE expired for ",        // (4) kLeaseExpired
+        "LEASE expired for",         // (4) kLeaseExpired
         "KEY LEASE expired for",     // (5) kKeyLeaseExpired
     };
 
