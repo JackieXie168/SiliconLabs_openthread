@@ -79,6 +79,7 @@ set(COMMON_SOURCES
     api/srp_server_api.cpp
     api/tasklet_api.cpp
     api/tcp_api.cpp
+    api/tcp_ext_api.cpp
     api/thread_api.cpp
     api/thread_ftd_api.cpp
     api/trel_api.cpp
@@ -183,6 +184,7 @@ set(COMMON_SOURCES
     net/srp_client.cpp
     net/srp_server.cpp
     net/tcp6.cpp
+    net/tcp6_ext.cpp
     net/udp6.cpp
     radio/radio.cpp
     radio/radio_callbacks.cpp
