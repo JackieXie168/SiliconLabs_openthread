@@ -186,14 +186,6 @@ public:
      */
     void SetUserCommands(const otCliCommand *aCommands, uint8_t aLength, void *aContext);
 
-    /**
-     * This method sets the user command error
-     *
-     * @param[in]  aError         An error
-     *
-     */
-    void SetUserCommandError(otError aError);
-
     static constexpr uint8_t kLinkModeStringSize = sizeof("rdn"); ///< Size of string buffer for a MLE Link Mode.
 
     /**
@@ -526,7 +518,6 @@ private:
     const otCliCommand *mUserCommands;
     uint8_t             mUserCommandsLength;
     void *              mUserCommandsContext;
-    otError             mUserCommandsError;
     bool                mCommandIsPending;
 
     TimerMilliContext mTimer;
