@@ -69,6 +69,7 @@ macro(ot_option name ot_config description)
     endif()
 endmacro()
 
+ot_option(OT_ANDROID_NDK OPENTHREAD_ENABLE_ANDROID_NDK "enable android NDK")
 ot_option(OT_ANYCAST_LOCATOR OPENTHREAD_CONFIG_TMF_ANYCAST_LOCATOR_ENABLE "anycast locator")
 ot_option(OT_ASSERT OPENTHREAD_CONFIG_ASSERT_ENABLE "assert function OT_ASSERT()")
 ot_option(OT_BACKBONE_ROUTER OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE "backbone router functionality")

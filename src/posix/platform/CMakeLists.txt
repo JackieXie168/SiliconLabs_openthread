@@ -135,7 +135,8 @@ target_link_libraries(openthread-posix
         ot-config-ftd
         ot-config
         ot-posix-config
-        util
+        $<$<NOT:$<BOOL:${OT_ANDROID_NDK}>>:util>
+        $<$<NOT:$<BOOL:${OT_ANDROID_NDK}>>:libcutils>
         $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Linux>:rt>
 )
 
