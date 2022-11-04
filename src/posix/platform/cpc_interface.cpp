@@ -158,7 +158,7 @@ void CpcInterface::Read(uint64_t aTimeoutUs)
         OT_ASSERT(ret == 0);
     }
 
-    bytesRead = cpc_read_endpoint(mEndpoint, buffer, sizeof(buffer), mReadFlags);
+    bytesRead = cpc_read_endpoint(mEndpoint, buffer, sizeof(buffer), SL_CPC_ENDPOINT_READ_FLAG_NONE);
 
     if (bytesRead > 0)
     {
@@ -207,7 +207,7 @@ otError CpcInterface::Write(const uint8_t *aFrame, uint16_t aLength)
 
     while (aLength)
     {
-        ssize_t bytesWritten = cpc_write_endpoint(mEndpoint, aFrame, aLength, mWriteFlags | SL_CPC_FLAG_NON_BLOCK);
+        ssize_t bytesWritten = cpc_write_endpoint(mEndpoint, aFrame, aLength, SL_CPC_ENDPOINT_WRITE_FLAG_NON_BLOCKING);
 
         if (bytesWritten == aLength)
         {
