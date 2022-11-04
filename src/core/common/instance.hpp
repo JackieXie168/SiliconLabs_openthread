@@ -291,7 +291,7 @@ public:
      * @returns A reference to the Heap object.
      *
      */
-    static Utils::Heap &GetHeap(void) { return sHeap; }
+    static Utils::Heap &GetHeap(void);
 #endif
 
 #if OPENTHREAD_CONFIG_COAP_API_ENABLE
@@ -382,7 +382,7 @@ private:
     // Random::Manager is initialized before other objects. Note that it
     // requires MbedTls which itself may use Heap.
 #if !OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE
-    static Utils::Heap sHeap;
+    static Utils::Heap *sHeap;
 #endif
     Crypto::MbedTls mMbedTls;
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
@@ -498,7 +498,7 @@ private:
 #endif
 
 #if OPENTHREAD_CONFIG_DTLS_ENABLE
-    Coap::CoapSecure mCoapSecure;
+    Tmf::SecureAgent mTmfSecureAgent;
 #endif
 
 #if OPENTHREAD_CONFIG_JOINER_ENABLE
@@ -908,9 +908,9 @@ template <> inline Tmf::Agent &Instance::Get(void)
 }
 
 #if OPENTHREAD_CONFIG_DTLS_ENABLE
-template <> inline Coap::CoapSecure &Instance::Get(void)
+template <> inline Tmf::SecureAgent &Instance::Get(void)
 {
-    return mCoapSecure;
+    return mTmfSecureAgent;
 }
 #endif
 
@@ -945,6 +945,21 @@ template <> inline TimeSync &Instance::Get(void)
 template <> inline MeshCoP::Commissioner &Instance::Get(void)
 {
     return mCommissioner;
+}
+
+template <> inline AnnounceBeginClient &Instance::Get(void)
+{
+    return mCommissioner.GetAnnounceBeginClient();
+}
+
+template <> inline EnergyScanClient &Instance::Get(void)
+{
+    return mCommissioner.GetEnergyScanClient();
+}
+
+template <> inline PanIdQueryClient &Instance::Get(void)
+{
+    return mCommissioner.GetPanIdQueryClient();
 }
 #endif
 
