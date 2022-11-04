@@ -226,7 +226,7 @@ Error Dtls::Bind(uint16_t aPort)
     VerifyOrExit(mState == kStateOpen, error = kErrorInvalidState);
     VerifyOrExit(mTransportCallback == nullptr, error = kErrorAlready);
 
-    SuccessOrExit(error = mSocket.Bind(aPort, OT_NETIF_UNSPECIFIED));
+    SuccessOrExit(error = mSocket.Bind(aPort, Ip6::kNetifUnspecified));
 
 exit:
     return error;
@@ -977,20 +977,20 @@ void Dtls::HandleMbedtlsDebug(int aLevel, const char *aFile, int aLine, const ch
     switch (aLevel)
     {
     case 1:
-        LogCrit("[%hu] %s", mSocket.GetSockName().mPort, aStr);
+        LogCrit("[%u] %s", mSocket.GetSockName().mPort, aStr);
         break;
 
     case 2:
-        LogWarn("[%hu] %s", mSocket.GetSockName().mPort, aStr);
+        LogWarn("[%u] %s", mSocket.GetSockName().mPort, aStr);
         break;
 
     case 3:
-        LogInfo("[%hu] %s", mSocket.GetSockName().mPort, aStr);
+        LogInfo("[%u] %s", mSocket.GetSockName().mPort, aStr);
         break;
 
     case 4:
     default:
-        LogDebg("[%hu] %s", mSocket.GetSockName().mPort, aStr);
+        LogDebg("[%u] %s", mSocket.GetSockName().mPort, aStr);
         break;
     }
 }

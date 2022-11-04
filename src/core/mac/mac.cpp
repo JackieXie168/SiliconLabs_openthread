@@ -101,7 +101,7 @@ Mac::Mac(Instance &aInstance)
     , mScanHandlerContext(nullptr)
     , mLinks(aInstance)
     , mOperationTask(aInstance)
-    , mTimer(aInstance, Mac::HandleTimer)
+    , mTimer(aInstance)
     , mKeyIdMode2FrameCounter(0)
     , mCcaSampleCount(0)
 #if OPENTHREAD_CONFIG_MULTI_RADIO
@@ -571,7 +571,7 @@ void Mac::UpdateIdleMode(void)
     else
     {
         mLinks.Receive(mRadioChannel);
-        LogDebg("Idle mode: Radio receiving on channel %d", mRadioChannel);
+        LogDebg("Idle mode: Radio receiving on channel %u", mRadioChannel);
     }
 
 exit:
@@ -1448,11 +1448,6 @@ exit:
     return;
 }
 
-void Mac::HandleTimer(Timer &aTimer)
-{
-    aTimer.Get<Mac>().HandleTimer();
-}
-
 void Mac::HandleTimer(void)
 {
     switch (mOperation)
@@ -1511,7 +1506,7 @@ Error Mac::ProcessReceiveSecurity(RxFrame &aFrame, const Address &aSrcAddr, Neig
     VerifyOrExit(securityLevel == Frame::kSecEncMic32);
 
     IgnoreError(aFrame.GetFrameCounter(frameCounter));
-    LogDebg("Rx security - frame counter %u", frameCounter);
+    LogDebg("Rx security - frame counter %lu", ToUlong(frameCounter));
 
     IgnoreError(aFrame.GetKeyIdMode(keyIdMode));
 
@@ -1657,7 +1652,7 @@ Error Mac::ProcessEnhAckSecurity(TxFrame &aTxFrame, RxFrame &aAckFrame)
     VerifyOrExit(txKeyId == ackKeyId);
 
     IgnoreError(aAckFrame.GetFrameCounter(frameCounter));
-    LogDebg("Rx security - Ack frame counter %u", frameCounter);
+    LogDebg("Rx security - Ack frame counter %lu", ToUlong(frameCounter));
 
     IgnoreError(aAckFrame.GetSrcAddr(srcAddr));
 
@@ -1745,7 +1740,7 @@ void Mac::HandleReceivedFrame(RxFrame *aFrame, Error aError)
 
     IgnoreError(aFrame->GetSrcAddr(srcaddr));
     IgnoreError(aFrame->GetDstAddr(dstaddr));
-    neighbor = Get<NeighborTable>().FindNeighbor(srcaddr);
+    neighbor = !srcaddr.IsNone() ? Get<NeighborTable>().FindNeighbor(srcaddr) : nullptr;
 
     // Destination Address Filtering
     switch (dstaddr.GetType())
@@ -2214,7 +2209,7 @@ void Mac::LogFrameTxFailure(const TxFrame &aFrame, Error aError, uint8_t aRetryC
         uint8_t maxAttempts = aFrame.GetMaxFrameRetries() + 1;
         uint8_t curAttempt  = aWillRetx ? (aRetryCount + 1) : maxAttempts;
 
-        LogInfo("Frame tx attempt %d/%d failed, error:%s, %s", curAttempt, maxAttempts, ErrorToString(aError),
+        LogInfo("Frame tx attempt %u/%u failed, error:%s, %s", curAttempt, maxAttempts, ErrorToString(aError),
                 aFrame.ToInfoString().AsCString());
     }
     else
@@ -2332,9 +2327,9 @@ void Mac::ProcessCsl(const RxFrame &aFrame, const Address &aSrcAddr)
     child->SetCslSynchronized(true);
     child->SetCslLastHeard(TimerMilli::GetNow());
     child->SetLastRxTimestamp(aFrame.GetTimestamp());
-    LogDebg("Timestamp=%u Sequence=%u CslPeriod=%hu CslPhase=%hu TransmitPhase=%hu",
-            static_cast<uint32_t>(aFrame.GetTimestamp()), aFrame.GetSequence(), csl->GetPeriod(), csl->GetPhase(),
-            child->GetCslPhase());
+    LogDebg("Timestamp=%lu Sequence=%u CslPeriod=%u CslPhase=%u TransmitPhase=%u",
+            ToUlong(static_cast<uint32_t>(aFrame.GetTimestamp())), aFrame.GetSequence(), csl->GetPeriod(),
+            csl->GetPhase(), child->GetCslPhase());
 
     Get<CslTxScheduler>().Update();
 

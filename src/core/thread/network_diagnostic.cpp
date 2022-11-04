@@ -50,7 +50,6 @@
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/uri_paths.hpp"
 
 namespace ot {
 
@@ -60,17 +59,9 @@ namespace NetworkDiagnostic {
 
 NetworkDiagnostic::NetworkDiagnostic(Instance &aInstance)
     : InstanceLocator(aInstance)
-    , mDiagnosticGetRequest(UriPath::kDiagnosticGetRequest, &NetworkDiagnostic::HandleDiagnosticGetRequest, this)
-    , mDiagnosticGetQuery(UriPath::kDiagnosticGetQuery, &NetworkDiagnostic::HandleDiagnosticGetQuery, this)
-    , mDiagnosticGetAnswer(UriPath::kDiagnosticGetAnswer, &NetworkDiagnostic::HandleDiagnosticGetAnswer, this)
-    , mDiagnosticReset(UriPath::kDiagnosticReset, &NetworkDiagnostic::HandleDiagnosticReset, this)
     , mReceiveDiagnosticGetCallback(nullptr)
     , mReceiveDiagnosticGetCallbackContext(nullptr)
 {
-    Get<Tmf::Agent>().AddResource(mDiagnosticGetRequest);
-    Get<Tmf::Agent>().AddResource(mDiagnosticGetQuery);
-    Get<Tmf::Agent>().AddResource(mDiagnosticGetAnswer);
-    Get<Tmf::Agent>().AddResource(mDiagnosticReset);
 }
 
 Error NetworkDiagnostic::SendDiagnosticGet(const Ip6::Address &           aDestination,
@@ -86,13 +77,13 @@ Error NetworkDiagnostic::SendDiagnosticGet(const Ip6::Address &           aDesti
 
     if (aDestination.IsMulticast())
     {
-        message = Get<Tmf::Agent>().NewNonConfirmablePostMessage(UriPath::kDiagnosticGetQuery);
+        message = Get<Tmf::Agent>().NewNonConfirmablePostMessage(kUriDiagnosticGetQuery);
         messageInfo.SetMulticastLoop(true);
     }
     else
     {
         handler = &NetworkDiagnostic::HandleDiagnosticGetResponse;
-        message = Get<Tmf::Agent>().NewConfirmablePostMessage(UriPath::kDiagnosticGetRequest);
+        message = Get<Tmf::Agent>().NewConfirmablePostMessage(kUriDiagnosticGetRequest);
     }
 
     VerifyOrExit(message != nullptr, error = kErrorNoBufs);
@@ -153,15 +144,9 @@ exit:
     return;
 }
 
-void NetworkDiagnostic::HandleDiagnosticGetAnswer(void *               aContext,
-                                                  otMessage *          aMessage,
-                                                  const otMessageInfo *aMessageInfo)
-{
-    static_cast<NetworkDiagnostic *>(aContext)->HandleDiagnosticGetAnswer(AsCoapMessage(aMessage),
-                                                                          AsCoreType(aMessageInfo));
-}
-
-void NetworkDiagnostic::HandleDiagnosticGetAnswer(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+template <>
+void NetworkDiagnostic::HandleTmf<kUriDiagnosticGetAnswer>(Coap::Message &         aMessage,
+                                                           const Ip6::MessageInfo &aMessageInfo)
 {
     VerifyOrExit(aMessage.IsConfirmablePostRequest());
 
@@ -319,8 +304,9 @@ Error NetworkDiagnostic::FillRequestedTlvs(const Message &       aRequest,
         case NetworkDiagnosticTlv::kConnectivity:
         {
             ConnectivityTlv tlv;
+
             tlv.Init();
-            Get<Mle::MleRouter>().FillConnectivityTlv(reinterpret_cast<Mle::ConnectivityTlv &>(tlv));
+            Get<Mle::MleRouter>().FillConnectivityTlv(tlv);
             SuccessOrExit(error = tlv.AppendTo(aResponse));
             break;
         }
@@ -328,8 +314,9 @@ Error NetworkDiagnostic::FillRequestedTlvs(const Message &       aRequest,
         case NetworkDiagnosticTlv::kRoute:
         {
             RouteTlv tlv;
+
             tlv.Init();
-            Get<Mle::MleRouter>().FillRouteTlv(reinterpret_cast<Mle::RouteTlv &>(tlv));
+            Get<Mle::MleRouter>().FillRouteTlv(tlv);
             SuccessOrExit(error = tlv.AppendTo(aResponse));
             break;
         }
@@ -337,16 +324,10 @@ Error NetworkDiagnostic::FillRequestedTlvs(const Message &       aRequest,
 
         case NetworkDiagnosticTlv::kLeaderData:
         {
-            LeaderDataTlv          tlv;
-            const Mle::LeaderData &leaderData = Get<Mle::MleRouter>().GetLeaderData();
+            LeaderDataTlv tlv;
 
             tlv.Init();
-            tlv.SetPartitionId(leaderData.GetPartitionId());
-            tlv.SetWeighting(leaderData.GetWeighting());
-            tlv.SetDataVersion(leaderData.GetDataVersion(NetworkData::kFullSet));
-            tlv.SetStableDataVersion(leaderData.GetDataVersion(NetworkData::kStableSubset));
-            tlv.SetLeaderRouterId(leaderData.GetLeaderRouterId());
-
+            tlv.Set(Get<Mle::MleRouter>().GetLeaderData());
             SuccessOrExit(error = tlv.AppendTo(aResponse));
             break;
         }
@@ -450,13 +431,8 @@ exit:
     return error;
 }
 
-void NetworkDiagnostic::HandleDiagnosticGetQuery(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
-{
-    static_cast<NetworkDiagnostic *>(aContext)->HandleDiagnosticGetQuery(AsCoapMessage(aMessage),
-                                                                         AsCoreType(aMessageInfo));
-}
-
-void NetworkDiagnostic::HandleDiagnosticGetQuery(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+template <>
+void NetworkDiagnostic::HandleTmf<kUriDiagnosticGetQuery>(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     Error                error   = kErrorNone;
     Coap::Message *      message = nullptr;
@@ -480,7 +456,7 @@ void NetworkDiagnostic::HandleDiagnosticGetQuery(Coap::Message &aMessage, const 
         }
     }
 
-    message = Get<Tmf::Agent>().NewConfirmablePostMessage(UriPath::kDiagnosticGetAnswer);
+    message = Get<Tmf::Agent>().NewConfirmablePostMessage(kUriDiagnosticGetAnswer);
     VerifyOrExit(message != nullptr, error = kErrorNoBufs);
 
     if (aMessageInfo.GetPeerAddr().IsLinkLocal())
@@ -504,15 +480,9 @@ exit:
     FreeMessageOnError(message, error);
 }
 
-void NetworkDiagnostic::HandleDiagnosticGetRequest(void *               aContext,
-                                                   otMessage *          aMessage,
-                                                   const otMessageInfo *aMessageInfo)
-{
-    static_cast<NetworkDiagnostic *>(aContext)->HandleDiagnosticGetRequest(AsCoapMessage(aMessage),
-                                                                           AsCoreType(aMessageInfo));
-}
-
-void NetworkDiagnostic::HandleDiagnosticGetRequest(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+template <>
+void NetworkDiagnostic::HandleTmf<kUriDiagnosticGetRequest>(Coap::Message &         aMessage,
+                                                            const Ip6::MessageInfo &aMessageInfo)
 {
     Error                error   = kErrorNone;
     Coap::Message *      message = nullptr;
@@ -548,7 +518,7 @@ Error NetworkDiagnostic::SendDiagnosticReset(const Ip6::Address &aDestination,
     Coap::Message *  message = nullptr;
     Tmf::MessageInfo messageInfo(GetInstance());
 
-    message = Get<Tmf::Agent>().NewConfirmablePostMessage(UriPath::kDiagnosticReset);
+    message = Get<Tmf::Agent>().NewConfirmablePostMessage(kUriDiagnosticReset);
     VerifyOrExit(message != nullptr, error = kErrorNoBufs);
 
     if (aCount > 0)
@@ -576,13 +546,8 @@ exit:
     return error;
 }
 
-void NetworkDiagnostic::HandleDiagnosticReset(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
-{
-    static_cast<NetworkDiagnostic *>(aContext)->HandleDiagnosticReset(AsCoapMessage(aMessage),
-                                                                      AsCoreType(aMessageInfo));
-}
-
-void NetworkDiagnostic::HandleDiagnosticReset(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+template <>
+void NetworkDiagnostic::HandleTmf<kUriDiagnosticReset>(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     uint16_t             offset = 0;
     uint8_t              type;
@@ -623,27 +588,6 @@ exit:
     return;
 }
 
-static inline void ParseMode(const Mle::DeviceMode &aMode, otLinkModeConfig &aLinkModeConfig)
-{
-    aLinkModeConfig.mRxOnWhenIdle = aMode.IsRxOnWhenIdle();
-    aLinkModeConfig.mDeviceType   = aMode.IsFullThreadDevice();
-    aLinkModeConfig.mNetworkData  = (aMode.GetNetworkDataType() == NetworkData::kFullSet);
-}
-
-static inline void ParseConnectivity(const ConnectivityTlv &    aConnectivityTlv,
-                                     otNetworkDiagConnectivity &aNetworkDiagConnectivity)
-{
-    aNetworkDiagConnectivity.mParentPriority   = aConnectivityTlv.GetParentPriority();
-    aNetworkDiagConnectivity.mLinkQuality3     = aConnectivityTlv.GetLinkQuality3();
-    aNetworkDiagConnectivity.mLinkQuality2     = aConnectivityTlv.GetLinkQuality2();
-    aNetworkDiagConnectivity.mLinkQuality1     = aConnectivityTlv.GetLinkQuality1();
-    aNetworkDiagConnectivity.mLeaderCost       = aConnectivityTlv.GetLeaderCost();
-    aNetworkDiagConnectivity.mIdSequence       = aConnectivityTlv.GetIdSequence();
-    aNetworkDiagConnectivity.mActiveRouters    = aConnectivityTlv.GetActiveRouters();
-    aNetworkDiagConnectivity.mSedBufferSize    = aConnectivityTlv.GetSedBufferSize();
-    aNetworkDiagConnectivity.mSedDatagramCount = aConnectivityTlv.GetSedDatagramCount();
-}
-
 static void ParseRoute(const RouteTlv &aRouteTlv, otNetworkDiagRoute &aNetworkDiagRoute)
 {
     uint8_t routeCount = 0;
@@ -664,15 +608,6 @@ static void ParseRoute(const RouteTlv &aRouteTlv, otNetworkDiagRoute &aNetworkDi
     aNetworkDiagRoute.mIdSequence = aRouteTlv.GetRouterIdSequence();
 }
 
-static inline void ParseLeaderData(const LeaderDataTlv &aLeaderDataTlv, otLeaderData &aLeaderData)
-{
-    aLeaderData.mPartitionId       = aLeaderDataTlv.GetPartitionId();
-    aLeaderData.mWeighting         = aLeaderDataTlv.GetWeighting();
-    aLeaderData.mDataVersion       = aLeaderDataTlv.GetDataVersion();
-    aLeaderData.mStableDataVersion = aLeaderDataTlv.GetStableDataVersion();
-    aLeaderData.mLeaderRouterId    = aLeaderDataTlv.GetLeaderRouterId();
-}
-
 static inline void ParseMacCounters(const MacCountersTlv &aMacCountersTlv, otNetworkDiagMacCounters &aMacCounters)
 {
     aMacCounters.mIfInUnknownProtos  = aMacCountersTlv.GetIfInUnknownProtos();
@@ -690,7 +625,7 @@ static inline void ParseChildEntry(const ChildTableEntry &aChildTableTlvEntry, o
 {
     aChildEntry.mTimeout = aChildTableTlvEntry.GetTimeout();
     aChildEntry.mChildId = aChildTableTlvEntry.GetChildId();
-    ParseMode(aChildTableTlvEntry.GetMode(), aChildEntry.mMode);
+    aChildTableTlvEntry.GetMode().Get(aChildEntry.mMode);
 }
 
 Error NetworkDiagnostic::GetNextDiagTlv(const Coap::Message &aMessage,
@@ -723,7 +658,7 @@ Error NetworkDiagnostic::GetNextDiagTlv(const Coap::Message &aMessage,
             uint8_t mode;
 
             SuccessOrExit(error = Tlv::Read<ModeTlv>(aMessage, offset, mode));
-            ParseMode(Mle::DeviceMode(mode), aNetworkDiagTlv.mData.mMode);
+            Mle::DeviceMode(mode).Get(aNetworkDiagTlv.mData.mMode);
             break;
         }
 
@@ -737,8 +672,7 @@ Error NetworkDiagnostic::GetNextDiagTlv(const Coap::Message &aMessage,
 
             SuccessOrExit(error = aMessage.Read(offset, connectivity));
             VerifyOrExit(connectivity.IsValid(), error = kErrorParse);
-
-            ParseConnectivity(connectivity, aNetworkDiagTlv.mData.mConnectivity);
+            connectivity.GetConnectivity(aNetworkDiagTlv.mData.mConnectivity);
             break;
         }
 
@@ -761,8 +695,7 @@ Error NetworkDiagnostic::GetNextDiagTlv(const Coap::Message &aMessage,
 
             SuccessOrExit(error = aMessage.Read(offset, leaderData));
             VerifyOrExit(leaderData.IsValid(), error = kErrorParse);
-
-            ParseLeaderData(leaderData, aNetworkDiagTlv.mData.mLeaderData);
+            leaderData.Get(AsCoreType(&aNetworkDiagTlv.mData.mLeaderData));
             break;
         }
 
