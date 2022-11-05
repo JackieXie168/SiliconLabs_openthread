@@ -223,8 +223,6 @@ private:
     int                 mSockFd;
     cpc_handle_t        mHandle;
     cpc_endpoint_t      mEndpoint;
-    cpc_read_flags_t    mReadFlags;
-    cpc_write_flags_t   mWriteFlags;
     uint32_t            mCpcBusSpeed;
 
     static void HandleSecondaryReset(void);
