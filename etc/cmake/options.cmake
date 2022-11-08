@@ -34,6 +34,8 @@ option(OT_FTD "enable FTD" ON)
 option(OT_MTD "enable MTD" ON)
 option(OT_RCP "enable RCP" ON)
 
+option(OT_LINKER_MAP "generate .map files for example apps" ON)
+
 set(OT_CONFIG_VALUES
     ""
     "ON"

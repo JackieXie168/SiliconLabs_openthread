@@ -44,6 +44,7 @@ target_compile_options(ot-cli PRIVATE
 )
 
 target_link_libraries(ot-cli
+    $<$<BOOL:${OT_LINKER_MAP}>:-Wl,-Map=ot-cli.map>
     openthread-cli-ftd
     openthread-posix
     openthread-ftd
