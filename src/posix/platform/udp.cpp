@@ -217,7 +217,7 @@ otError receivePacket(int aFd, uint8_t *aPayload, uint16_t &aLength, otMessageIn
 
                 memcpy(&pktinfo, CMSG_DATA(cmsg), sizeof(pktinfo));
 
-                aMessageInfo.mIsHostInterface = (pktinfo.ipi6_ifindex != gNetifIndex);
+                aMessageInfo.mIsHostInterface = (pktinfo.ipi6_ifindex != static_cast<int>(gNetifIndex));
                 memcpy(&aMessageInfo.mSockAddr, &pktinfo.ipi6_addr, sizeof(aMessageInfo.mSockAddr));
             }
         }
