@@ -38,6 +38,7 @@ if(NOT DEFINED OT_PLATFORM_LIB_RCP)
 endif()
 
 target_link_libraries(ot-rcp PRIVATE
+    $<$<BOOL:${OT_LINKER_MAP}>:-Wl,-Map=bin/ot-rcp.map>
     openthread-rcp
     ${OT_PLATFORM_LIB_RCP}
     openthread-radio

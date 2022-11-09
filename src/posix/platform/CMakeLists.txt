@@ -135,7 +135,8 @@ target_link_libraries(openthread-posix
         ot-config-ftd
         ot-config
         ot-posix-config
-        util
+        $<$<NOT:$<BOOL:${OT_ANDROID_NDK}>>:util>
+        $<$<NOT:$<BOOL:${OT_ANDROID_NDK}>>:libcutils>
         $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Linux>:rt>
 )
 
@@ -169,10 +170,19 @@ target_include_directories(openthread-posix PRIVATE
 )
 
 if(OT_POSIX_CONFIG_RCP_BUS MATCHES "CPC")
+
+    set(CPC_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../platform/service/cpc/)
+    execute_process(
+        COMMAND realpath ${CPC_SOURCE_DIR}
+        OUTPUT_VARIABLE CPC_SOURCE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+    add_subdirectory(${CPC_SOURCE_DIR}/daemon ${CPC_SOURCE_DIR}/daemon/build)
     target_sources(openthread-posix PRIVATE cpc_interface.cpp)
     target_link_libraries(openthread-posix PRIVATE cpc)
     target_include_directories(openthread-posix PRIVATE
-        ${PROJECT_SOURCE_DIR}/../../../platform/service/cpc/daemon/lib
-        ${PROJECT_SOURCE_DIR}/../../../platform/service/cpc/daemon/misc
+        ${CPC_SOURCE_DIR}/daemon/lib
+        ${CPC_SOURCE_DIR}/daemon/lib/include
+        ${CPC_SOURCE_DIR}/daemon/misc
     )
 endif()

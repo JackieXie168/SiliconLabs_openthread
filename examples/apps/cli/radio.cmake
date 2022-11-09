@@ -42,6 +42,7 @@ if(NOT DEFINED OT_MBEDTLS_RCP)
 endif()
 
 target_link_libraries(ot-cli-radio PRIVATE
+    $<$<BOOL:${OT_LINKER_MAP}>:-Wl,-Map=bin/ot-cli-radio.map>
     openthread-cli-radio
     ${OT_PLATFORM_LIB_RCP}
     openthread-radio-cli

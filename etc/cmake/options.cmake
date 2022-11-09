@@ -34,6 +34,8 @@ option(OT_FTD "enable FTD" ON)
 option(OT_MTD "enable MTD" ON)
 option(OT_RCP "enable RCP" ON)
 
+option(OT_LINKER_MAP "generate .map files for example apps" ON)
+
 set(OT_CONFIG_VALUES
     ""
     "ON"
@@ -69,6 +71,7 @@ macro(ot_option name ot_config description)
     endif()
 endmacro()
 
+ot_option(OT_ANDROID_NDK OPENTHREAD_ENABLE_ANDROID_NDK "enable android NDK")
 ot_option(OT_ANYCAST_LOCATOR OPENTHREAD_CONFIG_TMF_ANYCAST_LOCATOR_ENABLE "anycast locator")
 ot_option(OT_ASSERT OPENTHREAD_CONFIG_ASSERT_ENABLE "assert function OT_ASSERT()")
 ot_option(OT_BACKBONE_ROUTER OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE "backbone router functionality")
