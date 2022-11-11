@@ -100,6 +100,10 @@ set(OT_POSIX_CONFIG_RCP_VENDOR_INTERFACE "vendor_interface_example.cpp"
 
 set(CMAKE_EXE_LINKER_FLAGS "-rdynamic ${CMAKE_EXE_LINKER_FLAGS}" PARENT_SCOPE)
 
+if(OT_ANDROID_NDK)
+    target_compile_options(ot-posix-config INTERFACE -Wno-sign-compare)
+endif()
+
 add_library(openthread-posix
     alarm.cpp
     backbone.cpp
@@ -136,7 +140,6 @@ target_link_libraries(openthread-posix
         ot-config
         ot-posix-config
         $<$<NOT:$<BOOL:${OT_ANDROID_NDK}>>:util>
-        $<$<NOT:$<BOOL:${OT_ANDROID_NDK}>>:libcutils>
         $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Linux>:rt>
 )
 
