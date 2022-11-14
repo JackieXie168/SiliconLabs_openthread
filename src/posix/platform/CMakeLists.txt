@@ -173,19 +173,18 @@ target_include_directories(openthread-posix PRIVATE
 )
 
 if(OT_POSIX_CONFIG_RCP_BUS MATCHES "CPC")
-
-    set(CPC_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../platform/service/cpc/)
+    set(CPCD_SOURCE_DIR "" CACHE STRING "Location of cpc daemon project")
     execute_process(
-        COMMAND realpath ${CPC_SOURCE_DIR}
-        OUTPUT_VARIABLE CPC_SOURCE_DIR
+        COMMAND realpath ${CPCD_SOURCE_DIR}
+        OUTPUT_VARIABLE CPCD_SOURCE_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-    add_subdirectory(${CPC_SOURCE_DIR}/daemon ${CPC_SOURCE_DIR}/daemon/build)
+    add_subdirectory(${CPCD_SOURCE_DIR} ${CPCD_SOURCE_DIR}/build)
     target_sources(openthread-posix PRIVATE cpc_interface.cpp)
     target_link_libraries(openthread-posix PRIVATE cpc)
     target_include_directories(openthread-posix PRIVATE
-        ${CPC_SOURCE_DIR}/daemon/lib
-        ${CPC_SOURCE_DIR}/daemon/lib/include
-        ${CPC_SOURCE_DIR}/daemon/misc
+        ${CPCD_SOURCE_DIR}/lib
+        ${CPCD_SOURCE_DIR}/lib/include
+        ${CPCD_SOURCE_DIR}/misc
     )
 endif()
