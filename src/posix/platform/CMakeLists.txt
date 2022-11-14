@@ -174,7 +174,7 @@ target_include_directories(openthread-posix PRIVATE
 
 if(OT_POSIX_CONFIG_RCP_BUS MATCHES "CPC")
 
-    set(CPC_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../platform/service/cpc/)
+    set(CPC_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../platform/service/cpc/)
     execute_process(
         COMMAND realpath ${CPC_SOURCE_DIR}
         OUTPUT_VARIABLE CPC_SOURCE_DIR
