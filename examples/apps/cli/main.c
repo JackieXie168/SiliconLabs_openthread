@@ -93,6 +93,11 @@ static const otCliCommand kCommands[] = {
 };
 #endif // OPENTHREAD_POSIX && !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
 
+#if OPENTHREAD_CONFIG_CLI_VENDOR_COMMANDS_ENABLE
+extern const otCliCommand gVendorCommands[];
+extern uint8_t            gVendorCommandsLength;
+#endif
+
 int main(int argc, char *argv[])
 {
     otInstance *instance;
@@ -127,6 +132,10 @@ pseudo_reset:
 
 #if OPENTHREAD_POSIX && !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
     IgnoreError(otCliSetUserCommands(kCommands, OT_ARRAY_LENGTH(kCommands), instance));
+#endif
+
+#if OPENTHREAD_CONFIG_CLI_VENDOR_COMMANDS_ENABLE && OPENTHREAD_CONFIG_CLI_MAX_USER_CMD_ENTRIES > 1
+    IgnoreError(otCliSetUserCommands(gVendorCommands, gVendorCommandsLength, instance));
 #endif
 
     while (!otSysPseudoResetWasRequested())
