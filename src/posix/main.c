@@ -358,11 +358,6 @@ static const otCliCommand kCommands[] = {
     {"netif", ProcessNetif},
 };
 
-#if OPENTHREAD_CONFIG_CLI_VENDOR_COMMANDS_ENABLE
-extern const otCliCommand gVendorCommands[];
-extern uint8_t            gVendorCommandsLength;
-#endif
-
 int main(int argc, char *argv[])
 {
     otInstance *instance;
@@ -388,7 +383,7 @@ int main(int argc, char *argv[])
     IgnoreError(otCliSetUserCommands(kCommands, OT_ARRAY_LENGTH(kCommands), instance));
 
 #if OPENTHREAD_CONFIG_CLI_VENDOR_COMMANDS_ENABLE && OPENTHREAD_CONFIG_CLI_MAX_USER_CMD_ENTRIES > 1
-    IgnoreError(otCliSetUserCommands(gVendorCommands, gVendorCommandsLength, instance));
+    IgnoreError(otCliVendorSetUserCommands(instance));
 #endif
 
     while (true)
